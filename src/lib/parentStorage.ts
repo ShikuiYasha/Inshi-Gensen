@@ -4,12 +4,14 @@ const DATABASE_NAME = 'inshi-gensen';
 const DATABASE_VERSION = 1;
 const PARENT_STORE = 'parent-data';
 const CURRENT_DATA_KEY = 'current';
+const CURRENT_DATA_SCHEMA_VERSION = 1;
 
 export type StoredParentData = {
   id: typeof CURRENT_DATA_KEY;
   fileName: string;
   importedAt: string;
   veterans: VeteranRecord[];
+  schemaVersion: number;
 };
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -45,6 +47,7 @@ export async function saveParentData(
     fileName,
     importedAt: new Date().toISOString(),
     veterans,
+    schemaVersion: CURRENT_DATA_SCHEMA_VERSION,
   };
 
   return new Promise((resolve, reject) => {
@@ -75,7 +78,18 @@ export async function loadParentData(): Promise<StoredParentData | null> {
 
     request.onsuccess = () => {
       database.close();
-      resolve((request.result as StoredParentData | undefined) ?? null);
+
+      const savedData = request.result as StoredParentData | undefined;
+
+      if (!savedData) {
+        resolve(null);
+        return;
+      }
+
+      resolve({
+        ...savedData,
+        schemaVersion: savedData.schemaVersion ?? CURRENT_DATA_SCHEMA_VERSION,
+      });
     };
 
     request.onerror = () => {

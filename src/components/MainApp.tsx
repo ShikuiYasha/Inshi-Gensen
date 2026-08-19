@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { ParentCard } from './ParentCard';
-import { calculateRaceAffinity } from '../lib/affinity';
+import { calculateCharacterAffinity, calculateRaceAffinity } from '../lib/affinity';
 import type { GameData } from '../lib/gameData';
 import { createDisplayParent } from '../lib/parentDisplay';
 import { importVeterans } from '../lib/importVeterans';
 import { saveParentData, type StoredParentData } from '../lib/parentStorage';
+import { CharacterPicker } from './CharacterPicker';
+import { createCharacterOptions } from '../lib/characterOptions';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -17,6 +19,7 @@ type FilterMode = 'visual' | 'uql';
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
+  const [targetCharacterId, setTargetCharacterId] = useState<number | null>(null);
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const displayParents = useMemo(
     () =>
@@ -27,6 +30,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
       }),
     [data.veterans, gameData],
   );
+  const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
 
   async function handleReplacement(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -110,8 +114,26 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
             <div className="filter-sections">
               <details className="filter-section">
                 <summary>Target</summary>
-                <div className="filter-section__content">
-                  Target Uma and Other Parent selection will go here.
+                <div className="filter-section__content target-controls">
+                  <div className="target-control">
+                    <span className="target-control__label">Target Uma</span>
+
+                    <CharacterPicker
+                      label="Select Target Uma"
+                      options={characterOptions}
+                      value={targetCharacterId}
+                      onChange={setTargetCharacterId}
+                    />
+                  </div>
+
+                  <div className="target-control">
+                    <span className="target-control__label">Other Parent</span>
+
+                    <button className="character-picker-button" type="button" disabled>
+                      <span className="character-picker-button__add">+</span>
+                      <span>Select Other Parent</span>
+                    </button>
+                  </div>
                 </div>
               </details>
 
@@ -175,13 +197,22 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           </div>
 
           <div className="result-list">
-            {displayParents.slice(0, 20).map((parent) => (
-              <ParentCard
-                key={parent.trainedCharaId}
-                parent={parent}
-                raceAffinity={calculateRaceAffinity(parent, gameData)}
-              />
-            ))}
+            {displayParents.slice(0, 20).map((parent) => {
+              const raceAffinity = calculateRaceAffinity(parent, gameData);
+              const totalAffinity =
+                targetCharacterId === null
+                  ? undefined
+                  : calculateCharacterAffinity(targetCharacterId, parent, gameData) + raceAffinity;
+
+              return (
+                <ParentCard
+                  key={parent.trainedCharaId}
+                  parent={parent}
+                  raceAffinity={raceAffinity}
+                  totalAffinity={totalAffinity}
+                />
+              );
+            })}
           </div>
         </section>
       </main>

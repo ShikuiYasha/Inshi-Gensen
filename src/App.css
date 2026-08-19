@@ -604,3 +604,246 @@
     padding: 8px;
   }
 }
+.target-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.target-control {
+  min-width: 180px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.target-control__label {
+  color: #8e97a2;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.character-picker-button {
+  width: 180px;
+  min-height: 116px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 12px;
+  color: #c8d0d9;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  background: #171a1e;
+  border: 1px dashed #486173;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.character-picker-button:hover:not(:disabled) {
+  color: #eef7ff;
+  background: #1c242b;
+  border-color: #45adff;
+}
+
+.character-picker-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.character-picker-button__add {
+  color: #45adff;
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.character-picker-button .character-image {
+  width: 64px;
+  height: 64px;
+}
+
+.character-picker-clear {
+  width: 180px;
+  padding: 7px;
+  color: #ff9696;
+  font: inherit;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid #613a3a;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.character-image {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #e8f4fc;
+  font-weight: 800;
+  background: #25313b;
+  border: 2px solid #4d6b82;
+  border-radius: 50%;
+}
+
+.character-image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.picker-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(4 6 8 / 78%);
+  backdrop-filter: blur(4px);
+}
+
+.character-picker-dialog {
+  width: min(860px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 18px;
+  overflow: hidden;
+  background: #15171a;
+  border: 1px solid #353b43;
+  border-radius: 14px;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 50%);
+}
+
+.character-picker-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.character-picker-dialog__header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.character-picker-dialog__header button {
+  width: 36px;
+  height: 36px;
+  color: #b5bdc7;
+  font: inherit;
+  font-size: 1.5rem;
+  background: #22262b;
+  border: 1px solid #373d45;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.character-search {
+  width: 100%;
+  padding: 11px 13px;
+  color: #e8edf2;
+  background: #101216;
+  border: 1px solid #38414a;
+  border-radius: 8px;
+}
+
+.character-search:focus {
+  border-color: #45adff;
+  outline: 3px solid rgb(69 173 255 / 14%);
+}
+
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.character-option {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 8px;
+  padding: 12px 8px;
+  color: #cbd1d8;
+  font: inherit;
+  font-size: 0.76rem;
+  background: #191c20;
+  border: 1px solid #2d3239;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.character-option:hover,
+.character-option.is-selected {
+  color: #ffffff;
+  background: #1c2933;
+  border-color: #45adff;
+}
+
+.character-option span {
+  max-width: 100%;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+.character-picker-empty {
+  margin: 40px 0;
+  color: #89929d;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .target-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .target-control,
+  .character-picker-button,
+  .character-picker-clear {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .picker-backdrop {
+    padding: 0;
+  }
+
+  .character-picker-dialog {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    padding: 14px;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .character-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .character-option {
+    padding: 10px 5px;
+  }
+
+  .character-image {
+    width: 58px;
+    height: 58px;
+  }
+}

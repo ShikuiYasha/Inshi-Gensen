@@ -89,7 +89,7 @@ const duplicateCardIdAliases: Record<number, number> = {
   9_101_101: 101_101,
 };
 
-function getCanonicalCardId(cardId: number): number {
+export function getCanonicalCardId(cardId: number): number {
   return duplicateCardIdAliases[cardId] ?? cardId;
 }
 
