@@ -55,7 +55,7 @@ function App() {
     return <ImportScreen onImported={setStoredData} />;
   }
 
-  return <MainApp data={storedData} onDataReplaced={setStoredData} />;
+  return <MainApp data={storedData} gameData={gameData} onDataReplaced={setStoredData} />;
 }
 
 export default App;

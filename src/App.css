@@ -249,7 +249,11 @@
   resize: vertical;
   padding: 14px;
   color: #e9edf2;
-  font: 0.95rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font:
+    0.95rem/1.6 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
   background: #101216;
   border: 1px solid #38414a;
   border-radius: 8px;
@@ -351,5 +355,252 @@
   .sort-control select {
     width: 100%;
     min-width: 0;
+  }
+}
+.result-list {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.parent-card {
+  overflow: hidden;
+  background: #191b1f;
+  border: 1px solid #30343b;
+  border-radius: 10px;
+}
+
+.parent-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #30343b;
+}
+
+.parent-card__header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.parent-card__header p {
+  margin: 4px 0 0;
+  color: #929aa5;
+  font-size: 0.8rem;
+}
+
+.parent-card__metrics {
+  display: flex;
+  align-items: center;
+}
+
+.parent-card__metrics > div {
+  min-width: 106px;
+  display: grid;
+  gap: 2px;
+  padding: 0 14px;
+  text-align: center;
+  border-left: 1px solid #343941;
+}
+
+.parent-card__metrics strong {
+  color: #eef4fa;
+  font-size: 1.25rem;
+}
+
+.parent-card__metrics span {
+  color: #89929e;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.parent-card__body {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px;
+}
+
+.lineage {
+  padding-right: 18px;
+  border-right: 1px solid #30343b;
+}
+
+.lineage__member {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  color: #aeb5bf;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.lineage__member span {
+  max-width: 82px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineage__portrait {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: #eaf6ff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  background: #25313b;
+  border: 2px solid #4d6b82;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+.lineage__portrait img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lineage__member--main .lineage__portrait {
+  width: 64px;
+  height: 64px;
+  background: #263747;
+  border-color: #45adff;
+}
+
+.lineage__grandparents {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 13px;
+}
+
+.lineage__grandparents::before {
+  position: absolute;
+  top: 0;
+  left: 20%;
+  width: 60%;
+  height: 1px;
+  content: '';
+  background: #55606c;
+}
+
+.factor-groups {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 13px;
+}
+
+.factor-group {
+  display: grid;
+  gap: 7px;
+}
+
+.factor-group h4 {
+  margin: 0;
+  color: #858e99;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.factor-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.factor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  color: #d3d8de;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  background: #262a2f;
+  border: 1px solid #494f57;
+  border-radius: 7px;
+}
+
+.factor-pill--blue {
+  color: #64bdff;
+  background: rgb(32 119 180 / 14%);
+  border-color: #296a98;
+}
+
+.factor-pill--pink {
+  color: #ff5b98;
+  background: rgb(185 36 94 / 14%);
+  border-color: #8b2850;
+}
+
+.factor-pill--green {
+  color: #7bdc83;
+  background: rgb(52 145 63 / 14%);
+  border-color: #367a3d;
+}
+
+.factor-pill--event {
+  color: #ff7777;
+  background: rgb(182 50 50 / 14%);
+  border-color: #853535;
+}
+
+.factor-pill__main {
+  color: #ffd85a;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .parent-card__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .parent-card__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid #30343b;
+  }
+
+  .parent-card__metrics > div {
+    min-width: 0;
+    padding: 10px 5px 0;
+  }
+
+  .parent-card__metrics > div:first-child {
+    border-left: 0;
+  }
+
+  .parent-card__body {
+    grid-template-columns: 1fr;
+  }
+
+  .lineage {
+    padding: 0 0 16px;
+    border-right: 0;
+    border-bottom: 1px solid #30343b;
+  }
+
+  .lineage__grandparents {
+    width: min(220px, 100%);
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .result-list {
+    padding: 8px;
   }
 }

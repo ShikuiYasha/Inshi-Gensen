@@ -1,18 +1,32 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { ParentCard } from './ParentCard';
+import { calculateRaceAffinity } from '../lib/affinity';
+import type { GameData } from '../lib/gameData';
+import { createDisplayParent } from '../lib/parentDisplay';
 import { importVeterans } from '../lib/importVeterans';
 import { saveParentData, type StoredParentData } from '../lib/parentStorage';
 
 type MainAppProps = {
   data: StoredParentData;
+  gameData: GameData;
   onDataReplaced: (data: StoredParentData) => void;
 };
 
 type FilterMode = 'visual' | 'uql';
 
-export function MainApp({ data, onDataReplaced }: MainAppProps) {
+export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
   const [replaceError, setReplaceError] = useState<string | null>(null);
+  const displayParents = useMemo(
+    () =>
+      data.veterans.flatMap((veteran) => {
+        const parent = createDisplayParent(veteran, gameData);
+
+        return parent ? [parent] : [];
+      }),
+    [data.veterans, gameData],
+  );
 
   async function handleReplacement(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -147,7 +161,7 @@ export function MainApp({ data, onDataReplaced }: MainAppProps) {
           <div className="results__header">
             <div>
               <h2>Results</h2>
-              <p>{data.veterans.length} Parent records</p>
+              <p>{displayParents.length} Parent records</p>
             </div>
 
             <label className="sort-control">
@@ -160,7 +174,15 @@ export function MainApp({ data, onDataReplaced }: MainAppProps) {
             </label>
           </div>
 
-          <div className="results-placeholder">Parent result cards will appear here.</div>
+          <div className="result-list">
+            {displayParents.slice(0, 20).map((parent) => (
+              <ParentCard
+                key={parent.trainedCharaId}
+                parent={parent}
+                raceAffinity={calculateRaceAffinity(parent, gameData)}
+              />
+            ))}
+          </div>
         </section>
       </main>
     </div>
