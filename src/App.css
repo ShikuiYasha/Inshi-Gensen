@@ -73,3 +73,22 @@
     padding: 36px 20px;
   }
 }
+.import-status {
+  margin: 20px 0 0;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.import-status--success {
+  color: #8ee6ad;
+  background: rgb(40 145 82 / 12%);
+  border-color: rgb(69 190 116 / 45%);
+}
+
+.import-status--error {
+  color: #ff9b9b;
+  background: rgb(190 52 52 / 12%);
+  border-color: rgb(230 76 76 / 45%);
+}

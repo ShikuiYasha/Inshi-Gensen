@@ -1,11 +1,48 @@
-import { useRef } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
+import { importVeterans } from './lib/importVeterans';
+
+type ImportStatus =
+  | { type: 'idle' }
+  | { type: 'success'; message: string }
+  | { type: 'error'; message: string };
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importStatus, setImportStatus] = useState<ImportStatus>({
+    type: 'idle',
+  });
 
   function openFilePicker() {
     fileInputRef.current?.click();
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const jsonText = await file.text();
+      const importedData = importVeterans(jsonText);
+
+      setImportStatus({
+        type: 'success',
+        message: `${importedData.veterans.length} Parent records imported from ${file.name}.`,
+      });
+    } catch (error) {
+      setImportStatus({
+        type: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'The selected file could not be imported.',
+      });
+    } finally {
+      event.target.value = '';
+    }
   }
 
   return (
@@ -16,32 +53,39 @@ function App() {
         <p className="welcome__heading">Start by importing your data file.</p>
 
         <p className="welcome__description">
-  Select your Veteran Data as a <strong>.json</strong> file. If you do not have one yet,
-  you can extract it using{' '}
-  <a href="https://github.com/Werseter/umadump" target="_blank" rel="noreferrer">
-    UmaDump
-  </a>{' '}
-  or{' '}
-  <a
-    href="https://github.com/xancia/UmaExtractor/releases"
-    target="_blank"
-    rel="noreferrer"
-  >
-    UmaExtractor
-  </a>
-  .
-</p>
+          Select your Veteran Data as a <strong>.json</strong> file. If you do not have one yet,
+          you can extract it using{' '}
+          <a href="https://github.com/Werseter/umadump" target="_blank" rel="noreferrer">
+            UmaDump
+          </a>{' '}
+          or{' '}
+          <a
+            href="https://github.com/xancia/UmaExtractor/releases"
+            target="_blank"
+            rel="noreferrer"
+          >
+            UmaExtractor
+          </a>
+          .
+        </p>
 
         <input
           ref={fileInputRef}
           className="file-input"
           type="file"
           accept=".json,application/json"
+          onChange={handleFileChange}
         />
 
         <button className="import-button" type="button" onClick={openFilePicker}>
           Import data file
         </button>
+
+        {importStatus.type !== 'idle' && (
+          <p className={`import-status import-status--${importStatus.type}`} role="status">
+            {importStatus.message}
+          </p>
+        )}
       </section>
     </main>
   );
