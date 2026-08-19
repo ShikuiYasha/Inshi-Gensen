@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { ParentCard } from './ParentCard';
 import { calculateCharacterAffinity, calculateRaceAffinity } from '../lib/affinity';
 import type { GameData } from '../lib/gameData';
-import { createDisplayParent } from '../lib/parentDisplay';
+import { createDisplayParent, getTotalWhiteCount } from '../lib/parentDisplay';
 import { importVeterans } from '../lib/importVeterans';
 import { saveParentData, type StoredParentData } from '../lib/parentStorage';
 import { CharacterPicker } from './CharacterPicker';
@@ -15,11 +15,13 @@ type MainAppProps = {
 };
 
 type FilterMode = 'visual' | 'uql';
+type SortMode = 'white-count' | 'affinity' | 'race-affinity';
 
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
   const [targetCharacterId, setTargetCharacterId] = useState<number | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>('white-count');
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const displayParents = useMemo(
     () =>
@@ -31,7 +33,49 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     [data.veterans, gameData],
   );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
+  const sortedParents = useMemo(() => {
+    const preparedParents = displayParents.map((parent) => {
+      const raceAffinity = calculateRaceAffinity(parent, gameData);
+      const totalAffinity =
+        targetCharacterId === null
+          ? undefined
+          : calculateCharacterAffinity(targetCharacterId, parent, gameData) + raceAffinity;
 
+      return {
+        parent,
+        raceAffinity,
+        totalAffinity,
+      };
+    });
+
+    preparedParents.sort((left, right) => {
+      let difference: number;
+
+      if (sortMode === 'white-count') {
+        difference = getTotalWhiteCount(right.parent) - getTotalWhiteCount(left.parent);
+      } else if (sortMode === 'race-affinity') {
+        difference = right.raceAffinity - left.raceAffinity;
+      } else {
+        difference = (right.totalAffinity ?? -1) - (left.totalAffinity ?? -1);
+      }
+
+      if (difference !== 0) {
+        return difference;
+      }
+
+      return left.parent.trainedCharaId.localeCompare(right.parent.trainedCharaId);
+    });
+
+    return preparedParents;
+  }, [displayParents, gameData, sortMode, targetCharacterId]);
+
+  function handleTargetChange(characterId: number | null) {
+    setTargetCharacterId(characterId);
+
+    if (characterId === null && sortMode === 'affinity') {
+      setSortMode('race-affinity');
+    }
+  }
   async function handleReplacement(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
@@ -122,7 +166,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                       label="Select Target Uma"
                       options={characterOptions}
                       value={targetCharacterId}
-                      onChange={setTargetCharacterId}
+                      onChange={handleTargetChange}
                     />
                   </div>
 
@@ -188,31 +232,30 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
 
             <label className="sort-control">
               <span>Sort by</span>
-              <select defaultValue="white-count">
+              <select
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as SortMode)}
+              >
                 <option value="white-count">Total White Spark Count</option>
-                <option value="affinity">Total Affinity</option>
+
+                <option value="affinity" disabled={targetCharacterId === null}>
+                  Total Affinity
+                </option>
+
                 <option value="race-affinity">Total Race Affinity</option>
               </select>
             </label>
           </div>
 
           <div className="result-list">
-            {displayParents.slice(0, 20).map((parent) => {
-              const raceAffinity = calculateRaceAffinity(parent, gameData);
-              const totalAffinity =
-                targetCharacterId === null
-                  ? undefined
-                  : calculateCharacterAffinity(targetCharacterId, parent, gameData) + raceAffinity;
-
-              return (
-                <ParentCard
-                  key={parent.trainedCharaId}
-                  parent={parent}
-                  raceAffinity={raceAffinity}
-                  totalAffinity={totalAffinity}
-                />
-              );
-            })}
+            {sortedParents.slice(0, 20).map(({ parent, raceAffinity, totalAffinity }) => (
+              <ParentCard
+                key={parent.trainedCharaId}
+                parent={parent}
+                raceAffinity={raceAffinity}
+                totalAffinity={totalAffinity}
+              />
+            ))}
           </div>
         </section>
       </main>

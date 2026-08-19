@@ -1,8 +1,9 @@
-import type {
-  DisplayFactor,
-  DisplayParent,
-  FactorCategory,
-  LineageMember,
+import {
+  getTotalWhiteCount,
+  type DisplayFactor,
+  type DisplayParent,
+  type FactorCategory,
+  type LineageMember,
 } from '../lib/parentDisplay';
 
 type ParentCardProps = {
@@ -52,9 +53,7 @@ function LineagePortrait({ member }: { member: LineageMember }) {
 
 export function ParentCard({ parent, raceAffinity, totalAffinity }: ParentCardProps) {
   const outfitTitle = parent.main.outfitName.replace(parent.main.characterName, '').trim();
-  const totalWhiteCount = parent.factors.filter((factor) =>
-    ['skill', 'race', 'scenario'].includes(factor.category),
-  ).length;
+  const totalWhiteCount = getTotalWhiteCount(parent);
 
   const primaryFactors = parent.factors.filter((factor) =>
     ['blue', 'pink', 'green'].includes(factor.category),

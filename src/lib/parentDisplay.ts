@@ -249,3 +249,7 @@ export function createDisplayParent(
     factors: combineFactors(main, grandparents, gameData),
   };
 }
+export function getTotalWhiteCount(parent: DisplayParent): number {
+  return parent.factors.filter((factor) => ['skill', 'race', 'scenario'].includes(factor.category))
+    .length;
+}
