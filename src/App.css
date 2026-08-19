@@ -92,3 +92,264 @@
   background: rgb(190 52 52 / 12%);
   border-color: rgb(230 76 76 / 45%);
 }
+.loading-message {
+  color: #aeb5c0;
+}
+
+.database {
+  min-height: 100vh;
+  background: #0e0f12;
+}
+
+.database-header {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px max(24px, calc((100vw - 1440px) / 2));
+  background: #15171a;
+  border-bottom: 1px solid #2b2f35;
+}
+
+.database-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.database-header p {
+  margin: 5px 0 0;
+  color: #939ba7;
+  font-size: 0.875rem;
+}
+
+.secondary-button {
+  padding: 10px 16px;
+  color: #dce2e8;
+  font: inherit;
+  font-weight: 650;
+  background: #22262b;
+  border: 1px solid #39404a;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background: #2b3037;
+}
+
+.database > .import-status {
+  max-width: 1440px;
+  margin: 16px auto 0;
+}
+
+.database-content {
+  width: min(100% - 48px, 1440px);
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.filter-panel,
+.results {
+  background: #15171a;
+  border: 1px solid #2b2f35;
+  border-radius: 12px;
+}
+
+.filter-panel__header,
+.results__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+}
+
+.filter-panel__header h2,
+.results__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.filter-mode {
+  display: flex;
+  padding: 3px;
+  background: #0e0f12;
+  border: 1px solid #30353c;
+  border-radius: 8px;
+}
+
+.filter-mode button {
+  min-width: 78px;
+  padding: 7px 12px;
+  color: #9da5b0;
+  font: inherit;
+  font-weight: 650;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.filter-mode button.is-active {
+  color: #eef7ff;
+  background: #17659c;
+}
+
+.filter-sections {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.filter-section {
+  overflow: hidden;
+  background: #191b1f;
+  border: 1px solid #2b2f35;
+  border-radius: 9px;
+}
+
+.filter-section summary {
+  padding: 16px;
+  color: #45adff;
+  font-weight: 700;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.filter-section__content {
+  padding: 16px;
+  color: #9da5b0;
+  border-top: 1px solid #2b2f35;
+}
+
+.property-heading {
+  margin: 10px 4px 0;
+  color: #dce2e8;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.uql-panel {
+  display: grid;
+  gap: 9px;
+  padding: 4px 16px 16px;
+}
+
+.uql-panel label {
+  color: #aeb5c0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.uql-panel textarea {
+  min-height: 180px;
+  resize: vertical;
+  padding: 14px;
+  color: #e9edf2;
+  font: 0.95rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: #101216;
+  border: 1px solid #38414a;
+  border-radius: 8px;
+}
+
+.uql-panel textarea:focus {
+  border-color: #45adff;
+  outline: 3px solid rgb(69 173 255 / 14%);
+}
+
+.results {
+  margin-top: 22px;
+}
+
+.results__header {
+  border-bottom: 1px solid #2b2f35;
+}
+
+.results__header p {
+  margin: 4px 0 0;
+  color: #939ba7;
+  font-size: 0.85rem;
+}
+
+.sort-control {
+  display: grid;
+  gap: 5px;
+}
+
+.sort-control span {
+  color: #939ba7;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sort-control select {
+  min-width: 230px;
+  padding: 9px 34px 9px 11px;
+  color: #e4e8ed;
+  font: inherit;
+  background: #202328;
+  border: 1px solid #3a4048;
+  border-radius: 7px;
+}
+
+.results-placeholder {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  padding: 30px;
+  color: #77808c;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .database-header {
+    min-height: auto;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .database-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .database-header p {
+    overflow-wrap: anywhere;
+  }
+
+  .secondary-button {
+    flex: none;
+  }
+
+  .database-content {
+    width: calc(100% - 24px);
+    padding-top: 12px;
+  }
+
+  .filter-panel__header,
+  .results__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filter-mode {
+    width: 100%;
+  }
+
+  .filter-mode button {
+    flex: 1;
+  }
+
+  .filter-section summary {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+  }
+
+  .sort-control select {
+    width: 100%;
+    min-width: 0;
+  }
+}

@@ -67,17 +67,12 @@ export function importVeterans(jsonText: string): ImportedVeteranData {
 
   const uniqueVeterans = Array.from(
     new Map(
-      discoveredVeterans.map((veteran) => [
-        String(veteran.trained_chara_id),
-        veteran,
-      ]),
+      discoveredVeterans.map((veteran) => [String(veteran.trained_chara_id), veteran]),
     ).values(),
   );
 
   if (uniqueVeterans.length === 0) {
-    throw new Error(
-      'No supported Veteran Data could be found in this JSON file.',
-    );
+    throw new Error('No supported Veteran Data could be found in this JSON file.');
   }
 
   return {
