@@ -30,9 +30,7 @@ export function MainApp({ data, onDataReplaced }: MainAppProps) {
       onDataReplaced(savedData);
     } catch (error) {
       setReplaceError(
-        error instanceof Error
-          ? error.message
-          : 'The selected file could not be imported.',
+        error instanceof Error ? error.message : 'The selected file could not be imported.',
       );
     } finally {
       event.target.value = '';
@@ -44,9 +42,7 @@ export function MainApp({ data, onDataReplaced }: MainAppProps) {
       <header className="database-header">
         <div>
           <h1 lang="ja">因子厳選</h1>
-          <p>
-            {data.veterans.length} Parent records · {data.fileName}
-          </p>
+          <p>{data.veterans.length} Parent records</p>
         </div>
 
         <input
@@ -164,9 +160,7 @@ export function MainApp({ data, onDataReplaced }: MainAppProps) {
             </label>
           </div>
 
-          <div className="results-placeholder">
-            Parent result cards will appear here.
-          </div>
+          <div className="results-placeholder">Parent result cards will appear here.</div>
         </section>
       </main>
     </div>

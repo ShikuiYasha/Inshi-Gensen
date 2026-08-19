@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:data": "node scripts/build-game-data.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
