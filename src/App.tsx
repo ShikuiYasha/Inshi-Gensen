@@ -1,6 +1,7 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
 import { importVeterans } from './lib/importVeterans';
+import { loadParentData, saveParentData } from './lib/parentStorage';
 
 type ImportStatus =
   | { type: 'idle' }
@@ -12,6 +13,31 @@ function App() {
   const [importStatus, setImportStatus] = useState<ImportStatus>({
     type: 'idle',
   });
+
+  useEffect(() => {
+    async function restoreSavedData() {
+      try {
+        const savedData = await loadParentData();
+
+        if (savedData) {
+          setImportStatus({
+            type: 'success',
+            message: `${savedData.veterans.length} saved Parent records loaded from ${savedData.fileName}.`,
+          });
+        }
+      } catch (error) {
+        setImportStatus({
+          type: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Saved Parent Data could not be loaded.',
+        });
+      }
+    }
+
+    void restoreSavedData();
+  }, []);
 
   function openFilePicker() {
     fileInputRef.current?.click();
@@ -28,9 +54,11 @@ function App() {
       const jsonText = await file.text();
       const importedData = importVeterans(jsonText);
 
+      await saveParentData(file.name, importedData.veterans);
+
       setImportStatus({
         type: 'success',
-        message: `${importedData.veterans.length} Parent records imported from ${file.name}.`,
+        message: `${importedData.veterans.length} Parent records imported and saved from ${file.name}.`,
       });
     } catch (error) {
       setImportStatus({
