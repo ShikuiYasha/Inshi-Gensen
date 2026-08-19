@@ -1,0 +1,6 @@
+node_modules
+dist
+coverage
+public/data
+public/character_thumbs
+*.min.*
