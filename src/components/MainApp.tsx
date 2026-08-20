@@ -22,6 +22,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
   const [targetCharacterId, setTargetCharacterId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('white-count');
+  const [otherParentId, setOtherParentId] = useState<string | null>(null);
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const displayParents = useMemo(
     () =>
@@ -32,21 +33,35 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
       }),
     [data.veterans, gameData],
   );
+  const otherParent = useMemo(
+    () => displayParents.find((parent) => parent.trainedCharaId === otherParentId) ?? null,
+    [displayParents, otherParentId],
+  );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
   const sortedParents = useMemo(() => {
-    const preparedParents = displayParents.map((parent) => {
-      const raceAffinity = calculateRaceAffinity(parent, gameData);
-      const totalAffinity =
-        targetCharacterId === null
-          ? undefined
-          : calculateCharacterAffinity(targetCharacterId, parent, gameData) + raceAffinity;
+    const preparedParents = displayParents
+      .filter(
+        (parent) =>
+          otherParent === null || parent.main.characterId !== otherParent.main.characterId,
+      )
+      .map((parent) => {
+        const raceAffinity = calculateRaceAffinity(parent, gameData, otherParent ?? undefined);
+        const totalAffinity =
+          targetCharacterId === null
+            ? undefined
+            : calculateCharacterAffinity(
+                targetCharacterId,
+                parent,
+                gameData,
+                otherParent ?? undefined,
+              ) + raceAffinity;
 
-      return {
-        parent,
-        raceAffinity,
-        totalAffinity,
-      };
-    });
+        return {
+          parent,
+          raceAffinity,
+          totalAffinity,
+        };
+      });
 
     preparedParents.sort((left, right) => {
       let difference: number;
@@ -67,7 +82,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     });
 
     return preparedParents;
-  }, [displayParents, gameData, sortMode, targetCharacterId]);
+  }, [displayParents, gameData, otherParent, sortMode, targetCharacterId]);
 
   function handleTargetChange(characterId: number | null) {
     setTargetCharacterId(characterId);
@@ -173,10 +188,38 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                   <div className="target-control">
                     <span className="target-control__label">Other Parent</span>
 
-                    <button className="character-picker-button" type="button" disabled>
-                      <span className="character-picker-button__add">+</span>
-                      <span>Select Other Parent</span>
-                    </button>
+                    {otherParent ? (
+                      <div className="other-parent-selection">
+                        <div className="character-image">
+                          <span aria-hidden="true">
+                            {otherParent.main.characterName.slice(0, 1)}
+                          </span>
+
+                          <img
+                            src={
+                              `${import.meta.env.BASE_URL}character_thumbs/` +
+                              otherParent.main.thumbnailFileName
+                            }
+                            alt=""
+                            onError={(event) => {
+                              event.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+
+                        <strong>{otherParent.main.characterName}</strong>
+
+                        <button type="button" onClick={() => setOtherParentId(null)}>
+                          Clear
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="other-parent-empty">
+                        <span className="character-picker-button__add">+</span>
+                        <strong>No Other Parent selected</strong>
+                        <span>Choose one from the results below.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </details>
@@ -227,7 +270,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           <div className="results__header">
             <div>
               <h2>Results</h2>
-              <p>{displayParents.length} Parent records</p>
+              <p>{sortedParents.length} Parent records</p>
             </div>
 
             <label className="sort-control">
@@ -254,6 +297,12 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                 parent={parent}
                 raceAffinity={raceAffinity}
                 totalAffinity={totalAffinity}
+                isOtherParent={parent.trainedCharaId === otherParentId}
+                onToggleOtherParent={() =>
+                  setOtherParentId((currentId) =>
+                    currentId === parent.trainedCharaId ? null : parent.trainedCharaId,
+                  )
+                }
               />
             ))}
           </div>

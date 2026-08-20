@@ -847,3 +847,90 @@
     height: 58px;
   }
 }
+.other-parent-button {
+  flex: none;
+  padding: 8px 12px;
+  color: #b9dfff;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 750;
+  background: rgb(35 119 177 / 16%);
+  border: 1px solid #316f9b;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.other-parent-button:hover {
+  color: #ffffff;
+  background: rgb(35 119 177 / 28%);
+  border-color: #45adff;
+}
+
+.other-parent-button.is-selected {
+  color: #17130a;
+  background: #f0c84b;
+  border-color: #f0c84b;
+}
+
+.other-parent-selection,
+.other-parent-empty {
+  width: 180px;
+  min-height: 116px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  padding: 12px;
+  text-align: center;
+  background: #171a1e;
+  border: 1px solid #486173;
+  border-radius: 10px;
+}
+
+.other-parent-selection .character-image {
+  width: 64px;
+  height: 64px;
+}
+
+.other-parent-selection strong,
+.other-parent-empty strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: #dce4eb;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.other-parent-selection button {
+  padding: 5px 10px;
+  color: #ff9696;
+  font: inherit;
+  font-size: 0.7rem;
+  background: transparent;
+  border: 1px solid #603b3b;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.other-parent-empty {
+  color: #7f8995;
+  border-style: dashed;
+}
+
+.other-parent-empty > span:last-child {
+  font-size: 0.7rem;
+}
+
+@media (max-width: 800px) {
+  .other-parent-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .other-parent-selection,
+  .other-parent-empty {
+    width: 100%;
+  }
+}

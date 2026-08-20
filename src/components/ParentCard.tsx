@@ -10,6 +10,8 @@ type ParentCardProps = {
   parent: DisplayParent;
   raceAffinity: number;
   totalAffinity?: number;
+  isOtherParent: boolean;
+  onToggleOtherParent: () => void;
 };
 
 const factorSectionLabels: Partial<Record<FactorCategory, string>> = {
@@ -51,7 +53,13 @@ function LineagePortrait({ member }: { member: LineageMember }) {
   );
 }
 
-export function ParentCard({ parent, raceAffinity, totalAffinity }: ParentCardProps) {
+export function ParentCard({
+  parent,
+  raceAffinity,
+  totalAffinity,
+  isOtherParent,
+  onToggleOtherParent,
+}: ParentCardProps) {
   const outfitTitle = parent.main.outfitName.replace(parent.main.characterName, '').trim();
   const totalWhiteCount = getTotalWhiteCount(parent);
 
@@ -69,7 +77,13 @@ export function ParentCard({ parent, raceAffinity, totalAffinity }: ParentCardPr
 
           {outfitTitle && <p className="parent-card__outfit">{outfitTitle}</p>}
         </div>
-
+        <button
+          className={isOtherParent ? 'other-parent-button is-selected' : 'other-parent-button'}
+          type="button"
+          onClick={onToggleOtherParent}
+        >
+          {isOtherParent ? 'Clear Other Parent' : 'Set as Other Parent'}
+        </button>
         <div className="parent-card__metrics">
           <div>
             <strong>{totalAffinity ?? '—'}</strong>
