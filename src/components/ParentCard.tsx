@@ -88,6 +88,22 @@ export function ParentCard({
           <h3>{parent.main.characterName}</h3>
 
           {outfitTitle && <p className="parent-card__outfit">{outfitTitle}</p>}
+          {parent.rating !== null && (
+            <div className="parent-card__rating">
+              {parent.rankImageFileName && (
+                <img
+                  src={`${import.meta.env.BASE_URL}rank_images/` + parent.rankImageFileName}
+                  alt=""
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
+
+              <strong>{parent.rating.toLocaleString()}</strong>
+            </div>
+          )}
         </div>
 
         <button

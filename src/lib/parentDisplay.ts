@@ -25,6 +25,8 @@ export type DisplayParent = {
   main: LineageMember;
   grandparents: LineageMember[];
   factors: DisplayFactor[];
+  rating: number | null;
+  rankImageFileName: string | null;
 };
 
 type RawFactor = {
@@ -213,7 +215,27 @@ function combineFactors(
     return left.name.localeCompare(right.name);
   });
 }
+function getRating(source: Record<string, unknown>): number | null {
+  return toNumber(source.rank_score ?? source.parent_rank);
+}
 
+function getRankImageFileName(rating: number | null, gameData: GameData): string | null {
+  if (rating === null) {
+    return null;
+  }
+
+  const matchingRank = gameData.rankRanges.find(
+    (rank) => rating >= rank.minValue && rating <= rank.maxValue,
+  );
+
+  if (!matchingRank) {
+    return null;
+  }
+
+  const imageNumber = String(matchingRank.id - 1).padStart(2, '0');
+
+  return `utx_ico_statusrank_${imageNumber}.webp`;
+}
 export function createDisplayParent(
   veteran: VeteranRecord,
   gameData: GameData,
@@ -241,12 +263,14 @@ export function createDisplayParent(
 
       return displayMember ? [displayMember] : [];
     });
-
+  const rating = getRating(veteran);
   return {
     trainedCharaId: String(veteran.trained_chara_id),
     main,
     grandparents,
     factors: combineFactors(main, grandparents, gameData),
+    rating,
+    rankImageFileName: getRankImageFileName(rating, gameData),
   };
 }
 export function getTotalWhiteCount(parent: DisplayParent): number {

@@ -1,13 +1,11 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
 const sourceDirectory = process.argv[2];
 
 if (!sourceDirectory) {
-  throw new Error(
-    'Provide the folder containing the Uma source JSON files.',
-  );
+  throw new Error('Provide the folder containing the Uma source JSON files.');
 }
 
 async function readJson(fileName) {
@@ -25,11 +23,12 @@ function createTextLookup(rows, category) {
   );
 }
 
-const [textData, saddles, relations, relationMembers] = await Promise.all([
+const [textData, saddles, relations, relationMembers, rankRanges] = await Promise.all([
   readJson('text_data.json'),
   readJson('single_mode_wins_saddle.json'),
   readJson('succession_relation.json'),
   readJson('succession_relation_member.json'),
+  readJson('single_mode_rank.json'),
 ]);
 
 const membersByRelation = new Map();
@@ -58,10 +57,7 @@ const affinityGroups = relations
 const g1RaceGroups = Object.fromEntries(
   saddles
     .filter((saddle) => Number(saddle.win_saddle_type) === 3)
-    .map((saddle) => [
-      String(saddle.id),
-      Number(saddle.group_id),
-    ]),
+    .map((saddle) => [String(saddle.id), Number(saddle.group_id)]),
 );
 
 const gameData = {
@@ -72,17 +68,24 @@ const gameData = {
   raceNames: createTextLookup(textData, 111),
   g1RaceGroups,
   affinityGroups,
+  rankRanges: rankRanges.map((rank) => ({
+    id: Number(rank.id),
+    minValue: Number(rank.min_value),
+    maxValue: Number(rank.max_value),
+  })),
 };
 
 const outputDirectory = path.resolve('public', 'data');
 const outputFile = path.join(outputDirectory, 'game-data.json');
 
 await mkdir(outputDirectory, { recursive: true });
-await writeFile(
-  outputFile,
-  `${JSON.stringify(gameData, null, 2)}\n`,
-  'utf8',
-);
+await writeFile(outputFile, `${JSON.stringify(gameData, null, 2)}\n`, 'utf8');
+const rankImageOutputDirectory = path.resolve('public', 'rank_images');
+
+await cp(path.join(sourceDirectory, 'uma_ranks'), rankImageOutputDirectory, {
+  recursive: true,
+  force: true,
+});
 
 console.log(`Created ${outputFile}`);
 console.log(

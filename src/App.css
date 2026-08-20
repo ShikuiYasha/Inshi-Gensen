@@ -389,6 +389,23 @@
   color: #929aa5;
   font-size: 0.8rem;
 }
+.parent-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.parent-card__rating img {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+}
+
+.parent-card__rating strong {
+  color: #eef4fa;
+  font-size: 0.82rem;
+}
 
 .parent-card__metrics {
   display: flex;

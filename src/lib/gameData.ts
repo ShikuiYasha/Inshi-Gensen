@@ -3,6 +3,11 @@ export type AffinityGroup = {
   points: number;
   characters: number[];
 };
+export type RankRange = {
+  id: number;
+  minValue: number;
+  maxValue: number;
+};
 
 export type GameData = {
   version: number;
@@ -12,6 +17,7 @@ export type GameData = {
   raceNames: Record<string, string>;
   g1RaceGroups: Record<string, number>;
   affinityGroups: AffinityGroup[];
+  rankRanges: RankRange[];
 };
 
 let gameDataPromise: Promise<GameData> | null = null;
@@ -36,7 +42,8 @@ export function loadGameData(): Promise<GameData> {
         !('factors' in data) ||
         !('raceNames' in data) ||
         !('g1RaceGroups' in data) ||
-        !('affinityGroups' in data)
+        !('affinityGroups' in data) ||
+        !('rankRanges' in data)
       ) {
         throw new Error('The game lookup data is invalid.');
       }
