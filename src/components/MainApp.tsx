@@ -5,7 +5,7 @@ import {
   calculateRaceAffinityBreakdown,
 } from '../lib/affinity';
 import type { GameData } from '../lib/gameData';
-import { createDisplayParent, getTotalWhiteCount } from '../lib/parentDisplay';
+import { createDisplayParent, getCanonicalCardId, getTotalWhiteCount } from '../lib/parentDisplay';
 import { importVeterans } from '../lib/importVeterans';
 import { saveParentData, type StoredParentData } from '../lib/parentStorage';
 import { CharacterPicker } from './CharacterPicker';
@@ -28,7 +28,7 @@ type SortMode = 'white-count' | 'affinity' | 'race-affinity';
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
-  const [targetCharacterId, setTargetCharacterId] = useState<number | null>(null);
+  const [targetCardId, setTargetCardId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('white-count');
   const [otherParentId, setOtherParentId] = useState<string | null>(null);
   const [mainAllowIds, setMainAllowIds] = useState<number[]>([]);
@@ -51,13 +51,15 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
   const ownedParentCharacterOptions = useMemo(
-    () => createOwnedParentCharacterOptions(displayParents),
-    [displayParents],
+    () => createOwnedParentCharacterOptions(displayParents, gameData),
+    [displayParents, gameData],
   );
+  const targetCharacterId =
+    characterOptions.find((option) => option.cardId === targetCardId)?.characterId ?? null;
 
   const grandparentCharacterOptions = useMemo(
-    () => createGrandparentCharacterOptions(displayParents),
-    [displayParents],
+    () => createGrandparentCharacterOptions(displayParents, gameData),
+    [displayParents, gameData],
   );
   const sortedParents = useMemo(() => {
     const preparedParents = displayParents
@@ -66,31 +68,35 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           return false;
         }
 
-        if (mainAllowIds.length > 0 && !mainAllowIds.includes(parent.main.characterId)) {
+        const mainCardId = getCanonicalCardId(parent.main.cardId);
+
+        if (mainAllowIds.length > 0 && !mainAllowIds.includes(mainCardId)) {
           return false;
         }
 
-        if (mainHideIds.includes(parent.main.characterId)) {
+        if (mainHideIds.includes(mainCardId)) {
           return false;
         }
 
-        const grandparentIds = parent.grandparents.map((grandparent) => grandparent.characterId);
+        const grandparentCardIds = parent.grandparents.map((grandparent) =>
+          getCanonicalCardId(grandparent.cardId),
+        );
 
         if (grandparentAllowIds.length === 1) {
-          if (!grandparentIds.includes(grandparentAllowIds[0])) {
+          if (!grandparentCardIds.includes(grandparentAllowIds[0])) {
             return false;
           }
         } else if (grandparentAllowIds.length >= 2) {
           const bothGrandparentsAllowed =
-            grandparentIds.length >= 2 &&
-            grandparentIds.every((characterId) => grandparentAllowIds.includes(characterId));
+            grandparentCardIds.length >= 2 &&
+            grandparentCardIds.every((cardId) => grandparentAllowIds.includes(cardId));
 
           if (!bothGrandparentsAllowed) {
             return false;
           }
         }
 
-        if (grandparentIds.some((characterId) => grandparentHideIds.includes(characterId))) {
+        if (grandparentCardIds.some((cardId) => grandparentHideIds.includes(cardId))) {
           return false;
         }
 
@@ -158,10 +164,10 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     targetCharacterId,
   ]);
 
-  function handleTargetChange(characterId: number | null) {
-    setTargetCharacterId(characterId);
+  function handleTargetChange(cardId: number | null) {
+    setTargetCardId(cardId);
 
-    if (characterId === null && sortMode === 'affinity') {
+    if (cardId === null && sortMode === 'affinity') {
       setSortMode('race-affinity');
     }
   }
@@ -254,7 +260,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                     <CharacterPicker
                       label="Select Target Uma"
                       options={characterOptions}
-                      value={targetCharacterId}
+                      value={targetCardId}
                       onChange={handleTargetChange}
                     />
                   </div>

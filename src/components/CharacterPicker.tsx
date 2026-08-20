@@ -1,26 +1,15 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type MouseEvent,
-} from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import type { CharacterOption } from '../lib/characterOptions';
 
 type CharacterPickerProps = {
   label: string;
   options: CharacterOption[];
   value: number | null;
-  onChange: (characterId: number | null) => void;
+  onChange: (cardId: number | null) => void;
 };
 
-function CharacterImage({
-  character,
-}: {
-  character: CharacterOption;
-}) {
-  const imageUrl =
-    `${import.meta.env.BASE_URL}character_thumbs/` +
-    character.thumbnailFileName;
+function CharacterImage({ character }: { character: CharacterOption }) {
+  const imageUrl = `${import.meta.env.BASE_URL}character_thumbs/` + character.thumbnailFileName;
 
   return (
     <div className="character-image">
@@ -38,17 +27,11 @@ function CharacterImage({
   );
 }
 
-export function CharacterPicker({
-  label,
-  options,
-  value,
-  onChange,
-}: CharacterPickerProps) {
+export function CharacterPicker({ label, options, value, onChange }: CharacterPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
 
-  const selectedCharacter =
-    options.find((option) => option.characterId === value) ?? null;
+  const selectedCharacter = options.find((option) => option.cardId === value) ?? null;
 
   const filteredOptions = useMemo(() => {
     const normalizedSearch = searchText.trim().toLocaleLowerCase();
@@ -58,7 +41,7 @@ export function CharacterPicker({
     }
 
     return options.filter((option) =>
-      option.name.toLocaleLowerCase().includes(normalizedSearch),
+      `${option.name} ${option.outfitTitle}`.toLocaleLowerCase().includes(normalizedSearch),
     );
   }, [options, searchText]);
 
@@ -80,8 +63,8 @@ export function CharacterPicker({
     };
   }, [isOpen]);
 
-  function chooseCharacter(characterId: number) {
-    onChange(characterId);
+  function chooseCharacter(cardId: number) {
+    onChange(cardId);
     setIsOpen(false);
     setSearchText('');
   }
@@ -94,15 +77,12 @@ export function CharacterPicker({
 
   return (
     <>
-      <button
-        className="character-picker-button"
-        type="button"
-        onClick={() => setIsOpen(true)}
-      >
+      <button className="character-picker-button" type="button" onClick={() => setIsOpen(true)}>
         {selectedCharacter ? (
           <>
             <CharacterImage character={selectedCharacter} />
             <span>{selectedCharacter.name}</span>
+            <span className="character-option__outfit">{selectedCharacter.outfitTitle}</span>
           </>
         ) : (
           <>
@@ -113,21 +93,13 @@ export function CharacterPicker({
       </button>
 
       {selectedCharacter && (
-        <button
-          className="character-picker-clear"
-          type="button"
-          onClick={() => onChange(null)}
-        >
+        <button className="character-picker-clear" type="button" onClick={() => onChange(null)}>
           Clear {label}
         </button>
       )}
 
       {isOpen && (
-        <div
-          className="picker-backdrop"
-          role="presentation"
-          onMouseDown={handleBackdropClick}
-        >
+        <div className="picker-backdrop" role="presentation" onMouseDown={handleBackdropClick}>
           <section
             className="character-picker-dialog"
             role="dialog"
@@ -137,11 +109,7 @@ export function CharacterPicker({
             <header className="character-picker-dialog__header">
               <h2>{label}</h2>
 
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setIsOpen(false)}
-              >
+              <button type="button" aria-label="Close" onClick={() => setIsOpen(false)}>
                 ×
               </button>
             </header>
@@ -159,26 +127,21 @@ export function CharacterPicker({
               {filteredOptions.map((character) => (
                 <button
                   className={
-                    character.characterId === value
-                      ? 'character-option is-selected'
-                      : 'character-option'
+                    character.cardId === value ? 'character-option is-selected' : 'character-option'
                   }
                   type="button"
-                  key={character.characterId}
-                  onClick={() =>
-                    chooseCharacter(character.characterId)
-                  }
+                  key={character.cardId}
+                  onClick={() => chooseCharacter(character.cardId)}
                 >
                   <CharacterImage character={character} />
                   <span>{character.name}</span>
+                  <span className="character-option__outfit">{character.outfitTitle}</span>
                 </button>
               ))}
             </div>
 
             {filteredOptions.length === 0 && (
-              <p className="character-picker-empty">
-                No matching characters found.
-              </p>
+              <p className="character-picker-empty">No matching characters found.</p>
             )}
           </section>
         </div>

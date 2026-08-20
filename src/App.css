@@ -801,6 +801,17 @@
   text-align: center;
   text-overflow: ellipsis;
 }
+.character-option__outfit {
+  color: #7f8995;
+  font-size: 0.65rem;
+  line-height: 1.25;
+}
+
+.character-picker-button .character-option__outfit {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .character-picker-empty {
   margin: 40px 0;

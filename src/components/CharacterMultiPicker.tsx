@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent,
+} from 'react';
 import type { CharacterOption } from '../lib/characterOptions';
 
 type CharacterMultiPickerProps = {
@@ -9,12 +14,20 @@ type CharacterMultiPickerProps = {
   onChange: (values: number[]) => void;
 };
 
-function CharacterThumbnail({ character }: { character: CharacterOption }) {
-  const imageUrl = `${import.meta.env.BASE_URL}character_thumbs/` + character.thumbnailFileName;
+function CharacterThumbnail({
+  character,
+}: {
+  character: CharacterOption;
+}) {
+  const imageUrl =
+    `${import.meta.env.BASE_URL}character_thumbs/` +
+    character.thumbnailFileName;
 
   return (
     <div className="filter-character-image">
-      <span aria-hidden="true">{character.name.slice(0, 1)}</span>
+      <span aria-hidden="true">
+        {character.name.slice(0, 1)}
+      </span>
 
       <img
         src={imageUrl}
@@ -38,8 +51,10 @@ export function CharacterMultiPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
 
-  const selectedOptions = values.flatMap((characterId) => {
-    const option = options.find((candidate) => candidate.characterId === characterId);
+  const selectedOptions = values.flatMap((cardId) => {
+    const option = options.find(
+      (candidate) => candidate.cardId === cardId,
+    );
 
     return option ? [option] : [];
   });
@@ -51,7 +66,11 @@ export function CharacterMultiPicker({
       return options;
     }
 
-    return options.filter((option) => option.name.toLocaleLowerCase().includes(normalizedSearch));
+    return options.filter((option) =>
+      `${option.name} ${option.outfitTitle}`
+        .toLocaleLowerCase()
+        .includes(normalizedSearch),
+    );
   }, [options, searchText]);
 
   useEffect(() => {
@@ -72,17 +91,17 @@ export function CharacterMultiPicker({
     };
   }, [isOpen]);
 
-  function toggleCharacter(characterId: number) {
-    if (values.includes(characterId)) {
-      onChange(values.filter((value) => value !== characterId));
+  function toggleCharacter(cardId: number) {
+    if (values.includes(cardId)) {
+      onChange(values.filter((value) => value !== cardId));
       return;
     }
 
-    onChange([...values, characterId]);
+    onChange([...values, cardId]);
   }
 
-  function removeCharacter(characterId: number) {
-    onChange(values.filter((value) => value !== characterId));
+  function removeCharacter(cardId: number) {
+    onChange(values.filter((value) => value !== cardId));
   }
 
   function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
@@ -93,7 +112,11 @@ export function CharacterMultiPicker({
 
   return (
     <div className={`character-multi character-multi--${tone}`}>
-      <button className="character-multi__add" type="button" onClick={() => setIsOpen(true)}>
+      <button
+        className="character-multi__add"
+        type="button"
+        onClick={() => setIsOpen(true)}
+      >
         <span>{tone === 'allow' ? '+' : '−'}</span>
         {label}
       </button>
@@ -101,15 +124,22 @@ export function CharacterMultiPicker({
       {selectedOptions.length > 0 && (
         <div className="character-multi__chips">
           {selectedOptions.map((character) => (
-            <div className="character-filter-chip" key={character.characterId}>
+            <div
+              className="character-filter-chip"
+              key={character.cardId}
+            >
               <CharacterThumbnail character={character} />
 
-              <span>{character.name}</span>
+              <span>
+                {character.name} {character.outfitTitle}
+              </span>
 
               <button
                 type="button"
-                aria-label={`Remove ${character.name}`}
-                onClick={() => removeCharacter(character.characterId)}
+                aria-label={`Remove ${character.name} ${character.outfitTitle}`}
+                onClick={() =>
+                  removeCharacter(character.cardId)
+                }
               >
                 ×
               </button>
@@ -119,7 +149,11 @@ export function CharacterMultiPicker({
       )}
 
       {isOpen && (
-        <div className="picker-backdrop" role="presentation" onMouseDown={handleBackdropClick}>
+        <div
+          className="picker-backdrop"
+          role="presentation"
+          onMouseDown={handleBackdropClick}
+        >
           <section
             className="character-picker-dialog"
             role="dialog"
@@ -132,7 +166,11 @@ export function CharacterMultiPicker({
                 <p>{values.length} selected</p>
               </div>
 
-              <button type="button" aria-label="Close" onClick={() => setIsOpen(false)}>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setIsOpen(false)}
+              >
                 ×
               </button>
             </header>
@@ -140,27 +178,38 @@ export function CharacterMultiPicker({
             <input
               className="character-search"
               type="search"
-              placeholder="Search by name…"
+              placeholder="Search by name or outfit…"
               value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
+              onChange={(event) =>
+                setSearchText(event.target.value)
+              }
               autoFocus
             />
 
             <div className="character-grid">
               {filteredOptions.map((character) => {
-                const isSelected = values.includes(character.characterId);
+                const isSelected = values.includes(
+                  character.cardId,
+                );
 
                 return (
                   <button
                     className={
-                      isSelected ? `character-option is-selected is-${tone}` : 'character-option'
+                      isSelected
+                        ? `character-option is-selected is-${tone}`
+                        : 'character-option'
                     }
                     type="button"
-                    key={character.characterId}
-                    onClick={() => toggleCharacter(character.characterId)}
+                    key={character.cardId}
+                    onClick={() =>
+                      toggleCharacter(character.cardId)
+                    }
                   >
                     <CharacterThumbnail character={character} />
                     <span>{character.name}</span>
+                    <span className="character-option__outfit">
+                      {character.outfitTitle}
+                    </span>
                   </button>
                 );
               })}

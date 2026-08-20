@@ -1,62 +1,105 @@
 import type { GameData } from './gameData';
-import { getCanonicalCardId, type DisplayParent, type LineageMember } from './parentDisplay';
+import {
+  getCanonicalCardId,
+  type DisplayParent,
+} from './parentDisplay';
 
 export type CharacterOption = {
+  cardId: number;
   characterId: number;
   name: string;
+  outfitTitle: string;
   thumbnailFileName: string;
 };
 
-export function createCharacterOptions(gameData: GameData): CharacterOption[] {
-  const options = new Map<number, CharacterOption>();
+function createOption(
+  cardId: number,
+  gameData: GameData,
+): CharacterOption | null {
+  const canonicalCardId = getCanonicalCardId(cardId);
+  const characterId = Math.floor(canonicalCardId / 100);
+  const name = gameData.characters[String(characterId)];
 
-  const canonicalCardIds = Object.keys(gameData.outfits)
-    .map(Number)
-    .filter(Number.isFinite)
-    .map(getCanonicalCardId)
-    .sort((left, right) => left - right);
-
-  for (const cardId of canonicalCardIds) {
-    const characterId = Math.floor(cardId / 100);
-    const name = gameData.characters[String(characterId)];
-
-    if (!name || options.has(characterId)) {
-      continue;
-    }
-
-    options.set(characterId, {
-      characterId,
-      name,
-      thumbnailFileName: `chara_stand_${characterId}_${cardId}.webp`,
-    });
+  if (!name) {
+    return null;
   }
 
-  return Array.from(options.values()).sort((left, right) => left.name.localeCompare(right.name));
-}
-function createOptionFromMember(member: LineageMember): CharacterOption {
+  const fullOutfitName =
+    gameData.outfits[String(cardId)] ??
+    gameData.outfits[String(canonicalCardId)] ??
+    name;
+
   return {
-    characterId: member.characterId,
-    name: member.characterName,
-    thumbnailFileName: member.thumbnailFileName,
+    cardId: canonicalCardId,
+    characterId,
+    name,
+    outfitTitle: fullOutfitName.replace(name, '').trim(),
+    thumbnailFileName:
+      `chara_stand_${characterId}_${canonicalCardId}.webp`,
   };
 }
 
-function uniqueCharacterOptions(members: LineageMember[]): CharacterOption[] {
+export function createCharacterOptions(
+  gameData: GameData,
+): CharacterOption[] {
   const options = new Map<number, CharacterOption>();
 
-  for (const member of members) {
-    if (!options.has(member.characterId)) {
-      options.set(member.characterId, createOptionFromMember(member));
+  for (const rawCardId of Object.keys(gameData.outfits).map(Number)) {
+    if (!Number.isFinite(rawCardId)) {
+      continue;
+    }
+
+    const option = createOption(rawCardId, gameData);
+
+    if (option && !options.has(option.cardId)) {
+      options.set(option.cardId, option);
     }
   }
 
-  return Array.from(options.values()).sort((left, right) => left.name.localeCompare(right.name));
+  return Array.from(options.values()).sort((left, right) => {
+    const nameDifference = left.name.localeCompare(right.name);
+
+    if (nameDifference !== 0) {
+      return nameDifference;
+    }
+
+    return left.outfitTitle.localeCompare(right.outfitTitle);
+  });
 }
 
-export function createOwnedParentCharacterOptions(parents: DisplayParent[]): CharacterOption[] {
-  return uniqueCharacterOptions(parents.map((parent) => parent.main));
+function selectAvailableOutfits(
+  cardIds: number[],
+  gameData: GameData,
+): CharacterOption[] {
+  const availableCardIds = new Set(
+    cardIds.map(getCanonicalCardId),
+  );
+
+  return createCharacterOptions(gameData).filter((option) =>
+    availableCardIds.has(option.cardId),
+  );
 }
 
-export function createGrandparentCharacterOptions(parents: DisplayParent[]): CharacterOption[] {
-  return uniqueCharacterOptions(parents.flatMap((parent) => parent.grandparents));
+export function createOwnedParentCharacterOptions(
+  parents: DisplayParent[],
+  gameData: GameData,
+): CharacterOption[] {
+  return selectAvailableOutfits(
+    parents.map((parent) => parent.main.cardId),
+    gameData,
+  );
+}
+
+export function createGrandparentCharacterOptions(
+  parents: DisplayParent[],
+  gameData: GameData,
+): CharacterOption[] {
+  return selectAvailableOutfits(
+    parents.flatMap((parent) =>
+      parent.grandparents.map(
+        (grandparent) => grandparent.cardId,
+      ),
+    ),
+    gameData,
+  );
 }
