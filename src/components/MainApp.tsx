@@ -9,7 +9,12 @@ import { createDisplayParent, getTotalWhiteCount } from '../lib/parentDisplay';
 import { importVeterans } from '../lib/importVeterans';
 import { saveParentData, type StoredParentData } from '../lib/parentStorage';
 import { CharacterPicker } from './CharacterPicker';
-import { createCharacterOptions } from '../lib/characterOptions';
+import {
+  createCharacterOptions,
+  createGrandparentCharacterOptions,
+  createOwnedParentCharacterOptions,
+} from '../lib/characterOptions';
+import { CharacterMultiPicker } from './CharacterMultiPicker';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -26,6 +31,10 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const [targetCharacterId, setTargetCharacterId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('white-count');
   const [otherParentId, setOtherParentId] = useState<string | null>(null);
+  const [mainAllowIds, setMainAllowIds] = useState<number[]>([]);
+  const [mainHideIds, setMainHideIds] = useState<number[]>([]);
+  const [grandparentAllowIds, setGrandparentAllowIds] = useState<number[]>([]);
+  const [grandparentHideIds, setGrandparentHideIds] = useState<number[]>([]);
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const displayParents = useMemo(
     () =>
@@ -41,12 +50,52 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     [displayParents, otherParentId],
   );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
+  const ownedParentCharacterOptions = useMemo(
+    () => createOwnedParentCharacterOptions(displayParents),
+    [displayParents],
+  );
+
+  const grandparentCharacterOptions = useMemo(
+    () => createGrandparentCharacterOptions(displayParents),
+    [displayParents],
+  );
   const sortedParents = useMemo(() => {
     const preparedParents = displayParents
-      .filter(
-        (parent) =>
-          otherParent === null || parent.main.characterId !== otherParent.main.characterId,
-      )
+      .filter((parent) => {
+        if (otherParent && parent.main.characterId === otherParent.main.characterId) {
+          return false;
+        }
+
+        if (mainAllowIds.length > 0 && !mainAllowIds.includes(parent.main.characterId)) {
+          return false;
+        }
+
+        if (mainHideIds.includes(parent.main.characterId)) {
+          return false;
+        }
+
+        const grandparentIds = parent.grandparents.map((grandparent) => grandparent.characterId);
+
+        if (grandparentAllowIds.length === 1) {
+          if (!grandparentIds.includes(grandparentAllowIds[0])) {
+            return false;
+          }
+        } else if (grandparentAllowIds.length >= 2) {
+          const bothGrandparentsAllowed =
+            grandparentIds.length >= 2 &&
+            grandparentIds.every((characterId) => grandparentAllowIds.includes(characterId));
+
+          if (!bothGrandparentsAllowed) {
+            return false;
+          }
+        }
+
+        if (grandparentIds.some((characterId) => grandparentHideIds.includes(characterId))) {
+          return false;
+        }
+
+        return true;
+      })
       .map((parent) => {
         const raceBreakdown = calculateRaceAffinityBreakdown(
           parent,
@@ -97,7 +146,17 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     });
 
     return preparedParents;
-  }, [displayParents, gameData, otherParent, sortMode, targetCharacterId]);
+  }, [
+    displayParents,
+    gameData,
+    grandparentAllowIds,
+    grandparentHideIds,
+    mainAllowIds,
+    mainHideIds,
+    otherParent,
+    sortMode,
+    targetCharacterId,
+  ]);
 
   function handleTargetChange(characterId: number | null) {
     setTargetCharacterId(characterId);
@@ -241,8 +300,46 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
 
               <details className="filter-section">
                 <summary>Include / Exclude Characters</summary>
-                <div className="filter-section__content">
-                  Main Parent and Grandparent character filters will go here.
+                <div className="filter-section__content character-filter-layout">
+                  <section className="character-filter-scope">
+                    <h3>Main Parent</h3>
+
+                    <CharacterMultiPicker
+                      label="Allow Main Parent Characters"
+                      options={ownedParentCharacterOptions}
+                      values={mainAllowIds}
+                      tone="allow"
+                      onChange={setMainAllowIds}
+                    />
+
+                    <CharacterMultiPicker
+                      label="Hide Main Parent Characters"
+                      options={ownedParentCharacterOptions}
+                      values={mainHideIds}
+                      tone="hide"
+                      onChange={setMainHideIds}
+                    />
+                  </section>
+
+                  <section className="character-filter-scope">
+                    <h3>Grandparents</h3>
+
+                    <CharacterMultiPicker
+                      label="Allow Grandparent Characters"
+                      options={grandparentCharacterOptions}
+                      values={grandparentAllowIds}
+                      tone="allow"
+                      onChange={setGrandparentAllowIds}
+                    />
+
+                    <CharacterMultiPicker
+                      label="Hide Grandparent Characters"
+                      options={grandparentCharacterOptions}
+                      values={grandparentHideIds}
+                      tone="hide"
+                      onChange={setGrandparentHideIds}
+                    />
+                  </section>
                 </div>
               </details>
 
