@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { ParentCard } from './ParentCard';
-import { calculateCharacterAffinity, calculateRaceAffinity } from '../lib/affinity';
+import {
+  calculateCharacterAffinityBreakdown,
+  calculateRaceAffinityBreakdown,
+} from '../lib/affinity';
 import type { GameData } from '../lib/gameData';
 import { createDisplayParent, getTotalWhiteCount } from '../lib/parentDisplay';
 import { importVeterans } from '../lib/importVeterans';
@@ -45,21 +48,33 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           otherParent === null || parent.main.characterId !== otherParent.main.characterId,
       )
       .map((parent) => {
-        const raceAffinity = calculateRaceAffinity(parent, gameData, otherParent ?? undefined);
-        const totalAffinity =
+        const raceBreakdown = calculateRaceAffinityBreakdown(
+          parent,
+          gameData,
+          otherParent ?? undefined,
+        );
+
+        const characterBreakdown =
           targetCharacterId === null
             ? undefined
-            : calculateCharacterAffinity(
+            : calculateCharacterAffinityBreakdown(
                 targetCharacterId,
                 parent,
                 gameData,
                 otherParent ?? undefined,
-              ) + raceAffinity;
+              );
+
+        const raceAffinity = raceBreakdown.total;
+        const totalAffinity = characterBreakdown
+          ? characterBreakdown.total + raceBreakdown.total
+          : undefined;
 
         return {
           parent,
           raceAffinity,
           totalAffinity,
+          raceBreakdown,
+          characterBreakdown,
         };
       });
 
@@ -291,20 +306,24 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           </div>
 
           <div className="result-list">
-            {sortedParents.slice(0, 20).map(({ parent, raceAffinity, totalAffinity }) => (
-              <ParentCard
-                key={parent.trainedCharaId}
-                parent={parent}
-                raceAffinity={raceAffinity}
-                totalAffinity={totalAffinity}
-                isOtherParent={parent.trainedCharaId === otherParentId}
-                onToggleOtherParent={() =>
-                  setOtherParentId((currentId) =>
-                    currentId === parent.trainedCharaId ? null : parent.trainedCharaId,
-                  )
-                }
-              />
-            ))}
+            {sortedParents
+              .slice(0, 20)
+              .map(({ parent, raceAffinity, totalAffinity, raceBreakdown, characterBreakdown }) => (
+                <ParentCard
+                  key={parent.trainedCharaId}
+                  parent={parent}
+                  raceAffinity={raceAffinity}
+                  totalAffinity={totalAffinity}
+                  raceBreakdown={raceBreakdown}
+                  characterBreakdown={characterBreakdown}
+                  isOtherParent={parent.trainedCharaId === otherParentId}
+                  onToggleOtherParent={() =>
+                    setOtherParentId((currentId) =>
+                      currentId === parent.trainedCharaId ? null : parent.trainedCharaId,
+                    )
+                  }
+                />
+              ))}
           </div>
         </section>
       </main>

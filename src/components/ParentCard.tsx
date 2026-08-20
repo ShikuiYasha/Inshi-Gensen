@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { AffinityBreakdown, type AffinityBreakdownMode } from './AffinityBreakdown';
+import type { CharacterAffinityBreakdown, RaceAffinityBreakdown } from '../lib/affinity';
 import {
   getTotalWhiteCount,
   type DisplayFactor,
@@ -12,6 +15,8 @@ type ParentCardProps = {
   totalAffinity?: number;
   isOtherParent: boolean;
   onToggleOtherParent: () => void;
+  raceBreakdown: RaceAffinityBreakdown;
+  characterBreakdown?: CharacterAffinityBreakdown;
 };
 
 const factorSectionLabels: Partial<Record<FactorCategory, string>> = {
@@ -57,9 +62,16 @@ export function ParentCard({
   parent,
   raceAffinity,
   totalAffinity,
+  raceBreakdown,
+  characterBreakdown,
   isOtherParent,
   onToggleOtherParent,
 }: ParentCardProps) {
+  const [breakdownMode, setBreakdownMode] = useState<AffinityBreakdownMode | null>(null);
+
+  function toggleBreakdown(mode: AffinityBreakdownMode) {
+    setBreakdownMode((currentMode) => (currentMode === mode ? null : mode));
+  }
   const outfitTitle = parent.main.outfitName.replace(parent.main.characterName, '').trim();
   const totalWhiteCount = getTotalWhiteCount(parent);
 
@@ -77,6 +89,7 @@ export function ParentCard({
 
           {outfitTitle && <p className="parent-card__outfit">{outfitTitle}</p>}
         </div>
+
         <button
           className={isOtherParent ? 'other-parent-button is-selected' : 'other-parent-button'}
           type="button"
@@ -84,16 +97,23 @@ export function ParentCard({
         >
           {isOtherParent ? 'Clear Other Parent' : 'Set as Other Parent'}
         </button>
+
         <div className="parent-card__metrics">
-          <div>
+          <button
+            type="button"
+            disabled={!characterBreakdown}
+            onClick={() => toggleBreakdown('total')}
+          >
             <strong>{totalAffinity ?? '—'}</strong>
             <span>Total Affinity</span>
-          </div>
+            <span aria-hidden="true">{breakdownMode === 'total' ? '▲' : '▼'}</span>
+          </button>
 
-          <div>
+          <button type="button" onClick={() => toggleBreakdown('race')}>
             <strong>{raceAffinity}</strong>
             <span>Race Affinity</span>
-          </div>
+            <span aria-hidden="true">{breakdownMode === 'race' ? '▲' : '▼'}</span>
+          </button>
 
           <div>
             <strong>{totalWhiteCount}</strong>
@@ -101,6 +121,14 @@ export function ParentCard({
           </div>
         </div>
       </header>
+
+      {breakdownMode && (
+        <AffinityBreakdown
+          mode={breakdownMode}
+          race={raceBreakdown}
+          character={characterBreakdown}
+        />
+      )}
 
       <div className="parent-card__body">
         <aside className="lineage">
