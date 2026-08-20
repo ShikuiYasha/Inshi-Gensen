@@ -1,5 +1,15 @@
 import type { GameData } from './gameData';
-import type { DisplayParent, LineageMember } from './parentDisplay';
+import {
+  getCanonicalCardId,
+  type DisplayParent,
+  type LineageMember,
+} from './parentDisplay';
+
+export type AffinityParticipant = {
+  label: string;
+  characterName: string;
+  thumbnailFileName?: string;
+};
 
 export type RaceAffinityMatch = {
   groupId: number;
@@ -10,6 +20,7 @@ export type RaceAffinityMatch = {
 export type RaceAffinityComparison = {
   label: string;
   points: number;
+  participants: [AffinityParticipant, AffinityParticipant];
   matches: RaceAffinityMatch[];
 };
 
@@ -21,12 +32,50 @@ export type RaceAffinityBreakdown = {
 export type CharacterAffinityContribution = {
   label: string;
   points: number;
+  participants: AffinityParticipant[];
 };
 
 export type CharacterAffinityBreakdown = {
   total: number;
   contributions: CharacterAffinityContribution[];
 };
+
+function createMemberParticipant(
+  label: string,
+  member: LineageMember,
+): AffinityParticipant {
+  return {
+    label,
+    characterName: member.characterName,
+    thumbnailFileName: member.thumbnailFileName,
+  };
+}
+
+function createTargetParticipant(
+  targetCharacterId: number,
+  gameData: GameData,
+): AffinityParticipant {
+  const canonicalCardId = Object.keys(gameData.outfits)
+    .map(Number)
+    .filter(Number.isFinite)
+    .map(getCanonicalCardId)
+    .sort((left, right) => left - right)
+    .find(
+      (cardId) =>
+        Math.floor(cardId / 100) === targetCharacterId,
+    );
+
+  return {
+    label: 'Target',
+    characterName:
+      gameData.characters[String(targetCharacterId)] ??
+      `Character ${targetCharacterId}`,
+    thumbnailFileName:
+      canonicalCardId === undefined
+        ? undefined
+        : `chara_stand_${targetCharacterId}_${canonicalCardId}.webp`,
+  };
+}
 
 function getRaceGroups(
   member: LineageMember,
@@ -53,7 +102,9 @@ function getRaceGroups(
 
 function createRaceComparison(
   label: string,
+  leftLabel: string,
   left: LineageMember,
+  rightLabel: string,
   right: LineageMember,
   gameData: GameData,
 ): RaceAffinityComparison {
@@ -61,17 +112,14 @@ function createRaceComparison(
   const rightGroups = getRaceGroups(right, gameData);
   const matches: RaceAffinityMatch[] = [];
 
-  for (const [groupId, leftRaceName] of leftGroups) {
+  for (const [groupId, raceName] of leftGroups) {
     if (!rightGroups.has(groupId)) {
       continue;
     }
 
     matches.push({
       groupId,
-      raceName:
-        leftRaceName ??
-        rightGroups.get(groupId) ??
-        `G1 Group ${groupId}`,
+      raceName,
       points: 3,
     });
   }
@@ -83,6 +131,10 @@ function createRaceComparison(
   return {
     label,
     points: matches.length * 3,
+    participants: [
+      createMemberParticipant(leftLabel, left),
+      createMemberParticipant(rightLabel, right),
+    ],
     matches,
   };
 }
@@ -98,7 +150,9 @@ export function calculateRaceAffinityBreakdown(
     comparisons.push(
       createRaceComparison(
         `Current Parent ↔ Grandparent ${index + 1}`,
+        'Current Parent',
         parent.main,
+        `Grandparent ${index + 1}`,
         grandparent,
         gameData,
       ),
@@ -110,7 +164,9 @@ export function calculateRaceAffinityBreakdown(
       comparisons.push(
         createRaceComparison(
           `Other Parent ↔ Grandparent ${index + 1}`,
+          'Other Parent',
           otherParent.main,
+          `Grandparent ${index + 1}`,
           grandparent,
           gameData,
         ),
@@ -120,7 +176,9 @@ export function calculateRaceAffinityBreakdown(
     comparisons.push(
       createRaceComparison(
         'Current Parent ↔ Other Parent',
+        'Current Parent',
         parent.main,
+        'Other Parent',
         otherParent.main,
         gameData,
       ),
@@ -184,6 +242,15 @@ function createOneSideCharacterContributions(
   parent: DisplayParent,
   gameData: GameData,
 ): CharacterAffinityContribution[] {
+  const targetParticipant = createTargetParticipant(
+    targetCharacterId,
+    gameData,
+  );
+  const parentParticipant = createMemberParticipant(
+    sideName,
+    parent.main,
+  );
+
   const contributions: CharacterAffinityContribution[] = [
     {
       label: `Target ↔ ${sideName}`,
@@ -192,20 +259,29 @@ function createOneSideCharacterContributions(
         parent.main.characterId,
         gameData,
       ),
+      participants: [targetParticipant, parentParticipant],
     },
   ];
 
   parent.grandparents.forEach((grandparent, index) => {
+    const grandparentLabel = `Grandparent ${index + 1}`;
+
     contributions.push({
-      label:
-        `Target + ${sideName} + ` +
-        `Grandparent ${index + 1}`,
+      label: `Target + ${sideName} + ${grandparentLabel}`,
       points: calculateCharacterTriple(
         targetCharacterId,
         parent.main.characterId,
         grandparent.characterId,
         gameData,
       ),
+      participants: [
+        targetParticipant,
+        parentParticipant,
+        createMemberParticipant(
+          grandparentLabel,
+          grandparent,
+        ),
+      ],
     });
   });
 
@@ -242,6 +318,13 @@ export function calculateCharacterAffinityBreakdown(
         otherParent.main.characterId,
         gameData,
       ),
+      participants: [
+        createMemberParticipant('Current Parent', parent.main),
+        createMemberParticipant(
+          'Other Parent',
+          otherParent.main,
+        ),
+      ],
     });
   }
 

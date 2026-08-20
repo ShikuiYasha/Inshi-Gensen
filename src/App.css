@@ -1096,3 +1096,163 @@
     flex-direction: column;
   }
 }
+.affinity-participants {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.affinity-participant {
+  position: relative;
+  width: 92px;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.affinity-participant:not(:last-child)::after {
+  position: absolute;
+  top: 32px;
+  left: calc(100% - 4px);
+  width: 32px;
+  height: 2px;
+  content: '';
+  background: #5c7181;
+}
+
+.affinity-participant__image {
+  position: relative;
+  z-index: 1;
+  width: 66px;
+  height: 66px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #eaf6ff;
+  font-weight: 800;
+  background: #25313b;
+  border: 3px solid #5e8098;
+  border-radius: 50%;
+}
+
+.affinity-participant__image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.affinity-participant__label {
+  color: #d3dae1;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.affinity-participant__name {
+  width: 100%;
+  overflow: hidden;
+  color: #818b97;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.affinity-contributions {
+  display: grid;
+  gap: 8px;
+}
+
+.affinity-contribution {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  background: #181b1f;
+  border: 1px solid #2d3239;
+  border-radius: 8px;
+}
+
+.affinity-contribution__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  color: #bfc7d0;
+  font-size: 0.78rem;
+}
+
+.affinity-contribution__header strong {
+  flex: none;
+  color: #75d68c;
+}
+
+.race-comparison__summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.race-comparison__summary > span {
+  color: #9fa9b4;
+  font-size: 0.72rem;
+}
+
+.race-comparison .affinity-participant__image {
+  width: 58px;
+  height: 58px;
+}
+
+.race-comparison .affinity-participant {
+  width: 82px;
+}
+
+.race-comparison .affinity-participant:not(:last-child)::after {
+  top: 28px;
+}
+
+@media (max-width: 600px) {
+  .affinity-participants {
+    gap: 14px;
+  }
+
+  .affinity-participant {
+    width: 76px;
+  }
+
+  .affinity-participant:not(:last-child)::after {
+    left: calc(100% - 2px);
+    width: 18px;
+  }
+
+  .race-comparison summary {
+    align-items: flex-start;
+  }
+
+  .race-comparison__summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .race-comparison .affinity-participant {
+    width: 70px;
+  }
+}
+.race-comparison__score {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.race-comparison__chevron {
+  color: #45adff;
+  font-size: 0.7rem;
+  transition: transform 160ms ease;
+}
+
+.race-comparison[open] .race-comparison__chevron {
+  transform: rotate(180deg);
+}
