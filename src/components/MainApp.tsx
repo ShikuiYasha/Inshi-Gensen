@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { ParentCard } from './ParentCard';
 import {
   calculateCharacterAffinityBreakdown,
@@ -7,7 +7,14 @@ import {
 import type { GameData } from '../lib/gameData';
 import { createDisplayParent, getCanonicalCardId, getTotalWhiteCount } from '../lib/parentDisplay';
 import { importVeterans } from '../lib/importVeterans';
-import { saveParentData, type StoredParentData } from '../lib/parentStorage';
+import {
+  loadRentals,
+  removeRental,
+  saveParentData,
+  saveRental,
+  type StoredParentData,
+  type StoredRental,
+} from '../lib/parentStorage';
 import { CharacterPicker } from './CharacterPicker';
 import {
   createCharacterOptions,
@@ -15,6 +22,9 @@ import {
   createOwnedParentCharacterOptions,
 } from '../lib/characterOptions';
 import { CharacterMultiPicker } from './CharacterMultiPicker';
+import { RentalPicker } from './RentalPicker';
+import { fetchRentalProfile } from '../lib/rentalApi';
+import { importRentalProfile } from '../lib/rentalImport';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -31,11 +41,33 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const [targetCardId, setTargetCardId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('white-count');
   const [otherParentId, setOtherParentId] = useState<string | null>(null);
+  const [rentals, setRentals] = useState<StoredRental[]>([]);
+  const [isRentalPickerOpen, setIsRentalPickerOpen] = useState(false);
   const [mainAllowIds, setMainAllowIds] = useState<number[]>([]);
   const [mainHideIds, setMainHideIds] = useState<number[]>([]);
   const [grandparentAllowIds, setGrandparentAllowIds] = useState<number[]>([]);
   const [grandparentHideIds, setGrandparentHideIds] = useState<number[]>([]);
   const [replaceError, setReplaceError] = useState<string | null>(null);
+  useEffect(() => {
+    let isCancelled = false;
+
+    void loadRentals().then(
+      (savedRentals) => {
+        if (!isCancelled) {
+          setRentals(savedRentals);
+        }
+      },
+      () => {
+        if (!isCancelled) {
+          setRentals([]);
+        }
+      },
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
   const displayParents = useMemo(
     () =>
       data.veterans.flatMap((veteran) => {
@@ -45,9 +77,22 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
       }),
     [data.veterans, gameData],
   );
+  const displayRentals = useMemo(
+    () =>
+      rentals.flatMap((rental) => {
+        const parent = createDisplayParent(rental.veteran, gameData);
+
+        return parent ? [{ rental, parent }] : [];
+      }),
+    [gameData, rentals],
+  );
+
   const otherParent = useMemo(
-    () => displayParents.find((parent) => parent.trainedCharaId === otherParentId) ?? null,
-    [displayParents, otherParentId],
+    () =>
+      displayParents.find((parent) => parent.trainedCharaId === otherParentId) ??
+      displayRentals.find(({ parent }) => parent.trainedCharaId === otherParentId)?.parent ??
+      null,
+    [displayParents, displayRentals, otherParentId],
   );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
   const ownedParentCharacterOptions = useMemo(
@@ -163,6 +208,50 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     sortMode,
     targetCharacterId,
   ]);
+
+  async function handleFetchRental(accountId: string): Promise<void> {
+    const previousRental = displayRentals.find(({ rental }) => rental.accountId === accountId);
+
+    const wasSelected = previousRental?.parent.trainedCharaId === otherParentId;
+    const response = await fetchRentalProfile(accountId);
+    const importedRental = importRentalProfile(response);
+
+    const savedRental = await saveRental(
+      importedRental.accountId,
+      importedRental.trainerName,
+      importedRental.veteran,
+    );
+
+    setRentals((currentRentals) =>
+      [
+        ...currentRentals.filter((rental) => rental.accountId !== savedRental.accountId),
+        savedRental,
+      ].sort((left, right) => left.trainerName.localeCompare(right.trainerName)),
+    );
+
+    if (wasSelected) {
+      const refreshedParent = createDisplayParent(savedRental.veteran, gameData);
+
+      if (refreshedParent) {
+        setOtherParentId(refreshedParent.trainedCharaId);
+      }
+    }
+  }
+  async function handleRemoveRental(accountId: string): Promise<void> {
+    const removedDisplayRental = displayRentals.find(
+      ({ rental }) => rental.accountId === accountId,
+    );
+
+    await removeRental(accountId);
+
+    setRentals((currentRentals) =>
+      currentRentals.filter((rental) => rental.accountId !== accountId),
+    );
+
+    if (removedDisplayRental?.parent.trainedCharaId === otherParentId) {
+      setOtherParentId(null);
+    }
+  }
 
   function handleTargetChange(cardId: number | null) {
     setTargetCardId(cardId);
@@ -289,6 +378,14 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
 
                         <strong>{otherParent.main.characterName}</strong>
 
+                        <button
+                          className="browse-rentals-button"
+                          type="button"
+                          onClick={() => setIsRentalPickerOpen(true)}
+                        >
+                          Rentals
+                        </button>
+
                         <button type="button" onClick={() => setOtherParentId(null)}>
                           Clear
                         </button>
@@ -297,7 +394,15 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                       <div className="other-parent-empty">
                         <span className="character-picker-button__add">+</span>
                         <strong>No Other Parent selected</strong>
-                        <span>Choose one from the results below.</span>
+                        <span>Choose an owned Parent below or use a saved Rental.</span>
+
+                        <button
+                          className="browse-rentals-button"
+                          type="button"
+                          onClick={() => setIsRentalPickerOpen(true)}
+                        >
+                          Browse Rentals
+                        </button>
                       </div>
                     )}
                   </div>
@@ -430,6 +535,15 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           </div>
         </section>
       </main>
+      <RentalPicker
+        isOpen={isRentalPickerOpen}
+        rentals={displayRentals}
+        selectedParentId={otherParentId}
+        onClose={() => setIsRentalPickerOpen(false)}
+        onFetch={handleFetchRental}
+        onSelect={setOtherParentId}
+        onRemove={handleRemoveRental}
+      />
     </div>
   );
 }

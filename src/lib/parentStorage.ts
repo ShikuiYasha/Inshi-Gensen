@@ -1,8 +1,9 @@
 import type { VeteranRecord } from './importVeterans';
 
 const DATABASE_NAME = 'inshi-gensen';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const PARENT_STORE = 'parent-data';
+const RENTAL_STORE = 'rentals';
 const CURRENT_DATA_KEY = 'current';
 const CURRENT_DATA_SCHEMA_VERSION = 1;
 
@@ -12,6 +13,12 @@ export type StoredParentData = {
   importedAt: string;
   veterans: VeteranRecord[];
   schemaVersion: number;
+};
+export type StoredRental = {
+  accountId: string;
+  trainerName: string;
+  savedAt: string;
+  veteran: VeteranRecord;
 };
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -23,6 +30,11 @@ function openDatabase(): Promise<IDBDatabase> {
 
       if (!database.objectStoreNames.contains(PARENT_STORE)) {
         database.createObjectStore(PARENT_STORE, { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains(RENTAL_STORE)) {
+        database.createObjectStore(RENTAL_STORE, {
+          keyPath: 'accountId',
+        });
       }
     };
 
@@ -95,6 +107,79 @@ export async function loadParentData(): Promise<StoredParentData | null> {
     request.onerror = () => {
       database.close();
       reject(new Error('Saved Parent Data could not be loaded.'));
+    };
+  });
+}
+export async function saveRental(
+  accountId: string,
+  trainerName: string,
+  veteran: VeteranRecord,
+): Promise<StoredRental> {
+  const database = await openDatabase();
+
+  const storedRental: StoredRental = {
+    accountId,
+    trainerName,
+    savedAt: new Date().toISOString(),
+    veteran,
+  };
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(RENTAL_STORE, 'readwrite');
+    const store = transaction.objectStore(RENTAL_STORE);
+
+    store.put(storedRental);
+
+    transaction.oncomplete = () => {
+      database.close();
+      resolve(storedRental);
+    };
+
+    transaction.onerror = () => {
+      database.close();
+      reject(new Error('The Rental could not be saved locally.'));
+    };
+  });
+}
+export async function loadRentals(): Promise<StoredRental[]> {
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(RENTAL_STORE, 'readonly');
+    const store = transaction.objectStore(RENTAL_STORE);
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      database.close();
+
+      const rentals = request.result as StoredRental[];
+
+      resolve(rentals.sort((left, right) => left.trainerName.localeCompare(right.trainerName)));
+    };
+
+    request.onerror = () => {
+      database.close();
+      reject(new Error('Saved Rentals could not be loaded.'));
+    };
+  });
+}
+export async function removeRental(accountId: string): Promise<void> {
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(RENTAL_STORE, 'readwrite');
+    const store = transaction.objectStore(RENTAL_STORE);
+
+    store.delete(accountId);
+
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+
+    transaction.onerror = () => {
+      database.close();
+      reject(new Error('The saved Rental could not be removed.'));
     };
   });
 }
