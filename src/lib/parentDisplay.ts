@@ -4,6 +4,7 @@ import type { VeteranRecord } from './importVeterans';
 export type FactorCategory = 'blue' | 'pink' | 'green' | 'skill' | 'race' | 'scenario' | 'event';
 
 export type DisplayFactor = {
+  factorBaseId: number;
   category: FactorCategory;
   name: string;
   totalStars: number;
@@ -130,7 +131,7 @@ function isSuccessionMember(value: unknown): value is RawSuccessionMember {
   return isObject(value) && typeof toNumber(value.position_id) === 'number';
 }
 
-function getFactorCategory(factorId: number): FactorCategory {
+export function getFactorCategory(factorId: number): FactorCategory {
   if (factorId >= 10_000_000) {
     return 'green';
   }
@@ -173,8 +174,9 @@ function combineFactors(
   for (const { member, isMain } of members) {
     for (const factor of member.factors) {
       const category = getFactorCategory(factor.factorId);
+      const factorBaseId = factor.factorId - factor.stars;
       const name = gameData.factors[String(factor.factorId)] ?? `Factor ${factor.factorId}`;
-      const key = `${category}:${name}`;
+      const key = `${category}:${factorBaseId}`;
       const existing = combined.get(key);
 
       if (existing) {
@@ -185,6 +187,7 @@ function combineFactors(
         }
       } else {
         combined.set(key, {
+          factorBaseId,
           category,
           name,
           totalStars: factor.stars,
@@ -212,7 +215,13 @@ function combineFactors(
       return categoryDifference;
     }
 
-    return left.name.localeCompare(right.name);
+    const starDifference = right.totalStars - left.totalStars;
+
+    if (starDifference !== 0) {
+      return starDifference;
+    }
+
+    return left.factorBaseId - right.factorBaseId;
   });
 }
 function getRating(source: Record<string, unknown>): number | null {

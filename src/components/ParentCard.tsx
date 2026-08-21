@@ -84,10 +84,13 @@ export function ParentCard({
   return (
     <article className="parent-card">
       <header className="parent-card__header">
-        <div>
-          <h3>{parent.main.characterName}</h3>
+        <div className="parent-card__identity">
+          <div className="parent-card__identity-text">
+            <h3>{parent.main.characterName}</h3>
 
-          {outfitTitle && <p className="parent-card__outfit">{outfitTitle}</p>}
+            {outfitTitle && <p className="parent-card__outfit">{outfitTitle}</p>}
+          </div>
+
           {parent.rating !== null && (
             <div className="parent-card__rating">
               {parent.rankImageFileName && (

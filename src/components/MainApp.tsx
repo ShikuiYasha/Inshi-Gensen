@@ -25,6 +25,10 @@ import { CharacterMultiPicker } from './CharacterMultiPicker';
 import { RentalPicker } from './RentalPicker';
 import { fetchRentalProfile } from '../lib/rentalApi';
 import { importRentalProfile } from '../lib/rentalImport';
+import { createEmptySparkFilterState } from '../lib/filterState';
+import { getOptionalWhiteMatchCount, matchesSparkFilters } from '../lib/sparkFilter';
+import { SparkFilterPanel } from './SparkFilterPanel';
+import { createFactorOptions } from '../lib/factorOptions';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -38,6 +42,7 @@ type SortMode = 'white-count' | 'affinity' | 'race-affinity';
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
+  const [sparkFilters, setSparkFilters] = useState(createEmptySparkFilterState);
   const [targetCardId, setTargetCardId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('white-count');
   const [otherParentId, setOtherParentId] = useState<string | null>(null);
@@ -95,6 +100,8 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     [displayParents, displayRentals, otherParentId],
   );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
+  const factorOptions = useMemo(() => createFactorOptions(gameData), [gameData]);
+
   const ownedParentCharacterOptions = useMemo(
     () => createOwnedParentCharacterOptions(displayParents, gameData),
     [displayParents, gameData],
@@ -106,9 +113,76 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     () => createGrandparentCharacterOptions(displayParents, gameData),
     [displayParents, gameData],
   );
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+
+    function getFactorName(factorBaseId: number): string {
+      return (
+        factorOptions.find((option) => option.factorBaseId === factorBaseId)?.name ??
+        `Spark ${factorBaseId}`
+      );
+    }
+
+    function getCharacterName(cardId: number, options: typeof ownedParentCharacterOptions): string {
+      return options.find((option) => option.cardId === cardId)?.name ?? `Character ${cardId}`;
+    }
+
+    for (const node of sparkFilters.root.children) {
+      if (node.kind !== 'spark') {
+        continue;
+      }
+
+      const scopeLabel = node.scope === 'main' ? 'Main: ' : '';
+
+      const starLabel =
+        node.minStars === node.maxStars
+          ? `${node.minStars}★`
+          : `${node.minStars}-${node.maxStars}★`;
+
+      labels.push(`${scopeLabel}${getFactorName(node.factorBaseId)}: ${starLabel}`);
+    }
+
+    for (const optionalFilter of sparkFilters.optionalWhites) {
+      const scopeLabel = optionalFilter.scope === 'main' ? 'Optional Main' : 'Optional';
+
+      for (const factorBaseId of optionalFilter.factorBaseIds) {
+        labels.push(`${scopeLabel}: ${getFactorName(factorBaseId)}`);
+      }
+    }
+
+    for (const cardId of mainAllowIds) {
+      labels.push(`Allow Parent: ${getCharacterName(cardId, ownedParentCharacterOptions)}`);
+    }
+
+    for (const cardId of mainHideIds) {
+      labels.push(`Hide Parent: ${getCharacterName(cardId, ownedParentCharacterOptions)}`);
+    }
+
+    for (const cardId of grandparentAllowIds) {
+      labels.push(`Allow GP: ${getCharacterName(cardId, grandparentCharacterOptions)}`);
+    }
+
+    for (const cardId of grandparentHideIds) {
+      labels.push(`Hide GP: ${getCharacterName(cardId, grandparentCharacterOptions)}`);
+    }
+
+    return labels;
+  }, [
+    factorOptions,
+    grandparentAllowIds,
+    grandparentCharacterOptions,
+    grandparentHideIds,
+    mainAllowIds,
+    mainHideIds,
+    ownedParentCharacterOptions,
+    sparkFilters,
+  ]);
   const sortedParents = useMemo(() => {
     const preparedParents = displayParents
       .filter((parent) => {
+        if (!matchesSparkFilters(parent, sparkFilters)) {
+          return false;
+        }
         if (otherParent && parent.main.characterId === otherParent.main.characterId) {
           return false;
         }
@@ -168,6 +242,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
         const totalAffinity = characterBreakdown
           ? characterBreakdown.total + raceBreakdown.total
           : undefined;
+        const optionalWhiteMatches = getOptionalWhiteMatchCount(parent, sparkFilters);
 
         return {
           parent,
@@ -175,10 +250,20 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           totalAffinity,
           raceBreakdown,
           characterBreakdown,
+          optionalWhiteMatches,
         };
       });
-
+    const hasOptionalWhiteFilters = sparkFilters.optionalWhites.some(
+      (filter) => filter.factorBaseIds.length > 0,
+    );
     preparedParents.sort((left, right) => {
+      if (hasOptionalWhiteFilters) {
+        const optionalWhiteDifference = right.optionalWhiteMatches - left.optionalWhiteMatches;
+
+        if (optionalWhiteDifference !== 0) {
+          return optionalWhiteDifference;
+        }
+      }
       let difference: number;
 
       if (sortMode === 'white-count') {
@@ -206,6 +291,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     mainHideIds,
     otherParent,
     sortMode,
+    sparkFilters,
     targetCharacterId,
   ]);
 
@@ -282,7 +368,13 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
       event.target.value = '';
     }
   }
-
+  function clearCurrentFilters(): void {
+    setSparkFilters(createEmptySparkFilterState());
+    setMainAllowIds([]);
+    setMainHideIds([]);
+    setGrandparentAllowIds([]);
+    setGrandparentHideIds([]);
+  }
   return (
     <div className="database">
       <header className="database-header">
@@ -457,23 +549,14 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
               <div className="property-heading">Property Filters</div>
 
               <details className="filter-section">
-                <summary>Inheritance Factors</summary>
-                <div className="filter-section__content">
-                  Combined lineage factor filters will go here.
-                </div>
-              </details>
+                <summary>Spark Filters</summary>
 
-              <details className="filter-section">
-                <summary>Main Parent Factors</summary>
                 <div className="filter-section__content">
-                  Main Parent factor filters will go here.
-                </div>
-              </details>
-
-              <details className="filter-section">
-                <summary>Total Star Count</summary>
-                <div className="filter-section__content">
-                  Total factor star filters will go here.
+                  <SparkFilterPanel
+                    state={sparkFilters}
+                    options={factorOptions}
+                    onChange={setSparkFilters}
+                  />
                 </div>
               </details>
             </div>
@@ -485,6 +568,27 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                 placeholder="Example: (Speed >= 3 or Stamina >= 3) and optional white in (...)"
                 spellCheck="false"
               />
+            </div>
+          )}
+          {activeFilterLabels.length > 0 && (
+            <div className="active-filters">
+              <div className="active-filters__list">
+                <strong>Active Filters:</strong>
+
+                {filterMode === 'uql' ? (
+                  <span className="active-filter-chip active-filter-chip--uql">UQL: Active</span>
+                ) : (
+                  activeFilterLabels.map((label, index) => (
+                    <span className="active-filter-chip" key={`${label}-${index}`}>
+                      {label}
+                    </span>
+                  ))
+                )}
+              </div>
+
+              <button className="clear-filters-button" type="button" onClick={clearCurrentFilters}>
+                Clear Filters
+              </button>
             </div>
           )}
         </section>
