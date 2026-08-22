@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { ParentCard } from './ParentCard';
 import {
   calculateCharacterAffinityBreakdown,
@@ -6,11 +6,9 @@ import {
 } from '../lib/affinity';
 import type { GameData } from '../lib/gameData';
 import { createDisplayParent, getCanonicalCardId, getTotalWhiteCount } from '../lib/parentDisplay';
-import { importVeterans } from '../lib/importVeterans';
 import {
   loadRentals,
   removeRental,
-  saveParentData,
   saveRental,
   type StoredParentData,
   type StoredRental,
@@ -47,6 +45,7 @@ import {
   removeFilterPreset,
   type FilterPreset,
 } from '../lib/filterPresets';
+import { ParentDataImporter } from './ParentDataImporter';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -59,7 +58,6 @@ type UqlStatus = 'active' | 'editing' | 'invalid';
 type SortMode = 'white-count' | 'affinity' | 'race-affinity';
 
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const uqlEditorRef = useRef<HTMLTextAreaElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
   const [uqlText, setUqlText] = useState('');
@@ -85,7 +83,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const [mainHideIds, setMainHideIds] = useState<number[]>([]);
   const [grandparentAllowIds, setGrandparentAllowIds] = useState<number[]>([]);
   const [grandparentHideIds, setGrandparentHideIds] = useState<number[]>([]);
-  const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [isDataImporterOpen, setIsDataImporterOpen] = useState(false);
   const [filterPresets, setFilterPresets] = useState(loadFilterPresets);
 
   const [isPresetPanelOpen, setIsPresetPanelOpen] = useState(false);
@@ -423,28 +421,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
       setSortMode('race-affinity');
     }
   }
-  async function handleReplacement(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
-
-    try {
-      const jsonText = await file.text();
-      const importedData = importVeterans(jsonText);
-      const savedData = await saveParentData(file.name, importedData.veterans);
-
-      setReplaceError(null);
-      onDataReplaced(savedData);
-    } catch (error) {
-      setReplaceError(
-        error instanceof Error ? error.message : 'The selected file could not be imported.',
-      );
-    } finally {
-      event.target.value = '';
-    }
-  }
   function clearCurrentFilters(): void {
     setSparkFilters(createEmptySparkFilterState());
     setMainAllowIds([]);
@@ -627,28 +604,14 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           <p>{data.veterans.length} Parent records</p>
         </div>
 
-        <input
-          ref={fileInputRef}
-          className="file-input"
-          type="file"
-          accept=".json,application/json"
-          onChange={handleReplacement}
-        />
-
         <button
           className="secondary-button"
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => setIsDataImporterOpen(true)}
         >
           Replace data
         </button>
       </header>
-
-      {replaceError && (
-        <p className="import-status import-status--error" role="alert">
-          {replaceError}
-        </p>
-      )}
 
       <main className="database-content">
         <section className="filter-panel">
@@ -995,6 +958,43 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
           </div>
         </section>
       </main>
+      {isDataImporterOpen && (
+        <div
+          className="data-import-modal"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsDataImporterOpen(false);
+            }
+          }}
+        >
+          <section
+            className="data-import-modal__dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="data-import-title"
+          >
+            <header className="data-import-modal__header">
+              <div>
+                <h2 id="data-import-title">Replace Parent Data</h2>
+
+                <p>Your Presets and saved Rentals will be preserved.</p>
+              </div>
+
+              <button type="button" aria-label="Close" onClick={() => setIsDataImporterOpen(false)}>
+                ×
+              </button>
+            </header>
+
+            <ParentDataImporter
+              onImported={(importedData) => {
+                onDataReplaced(importedData);
+                setIsDataImporterOpen(false);
+              }}
+            />
+          </section>
+        </div>
+      )}
       <RentalPicker
         isOpen={isRentalPickerOpen}
         rentals={displayRentals}

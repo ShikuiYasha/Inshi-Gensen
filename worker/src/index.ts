@@ -63,6 +63,7 @@ export default {
 
     const requestUrl = new URL(request.url);
     const accountId = requestUrl.searchParams.get('account_id');
+    const dataType = requestUrl.searchParams.get('type') ?? 'rental';
 
     if (!accountId || !/^\d{9,12}$/.test(accountId)) {
       return jsonResponse(
@@ -123,7 +124,52 @@ export default {
         origin,
       );
     }
+    if (dataType === 'veterans') {
+      if (
+        typeof upstreamData !== 'object' ||
+        upstreamData === null ||
+        !('trainer' in upstreamData) ||
+        !('veterans' in upstreamData) ||
+        !Array.isArray(upstreamData.veterans)
+      ) {
+        return jsonResponse(
+          {
+            error: 'No Parent Data was found for this Trainer.',
+            status: 404,
+          },
+          404,
+          origin,
+        );
+      }
 
+      if (upstreamData.veterans.length === 0) {
+        return jsonResponse(
+          {
+            error: 'This Trainer has not uploaded any Parent Data to uma.moe.',
+            status: 404,
+          },
+          404,
+          origin,
+        );
+      }
+
+      const trainer =
+        typeof upstreamData.trainer === 'object' && upstreamData.trainer !== null
+          ? upstreamData.trainer
+          : {};
+
+      return jsonResponse(
+        {
+          trainer: {
+            account_id: 'account_id' in trainer ? trainer.account_id : accountId,
+            name: 'name' in trainer ? trainer.name : `Trainer ${accountId}`,
+          },
+          veterans: upstreamData.veterans,
+        },
+        200,
+        origin,
+      );
+    }
     if (
       typeof upstreamData !== 'object' ||
       upstreamData === null ||
