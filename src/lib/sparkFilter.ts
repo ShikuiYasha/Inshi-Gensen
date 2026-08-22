@@ -1,10 +1,4 @@
-import type {
-  SparkCondition,
-  SparkFilterGroup,
-  SparkFilterNode,
-  SparkFilterState,
-  SparkScope,
-} from './filterState';
+import type { SparkCondition, SparkFilterGroup, SparkFilterState, SparkScope } from './filterState';
 import type { DisplayFactor, DisplayParent, FactorCategory } from './parentDisplay';
 
 const whiteCategories: FactorCategory[] = ['skill', 'race', 'scenario'];
@@ -25,12 +19,29 @@ function matchesCondition(parent: DisplayParent, condition: SparkCondition): boo
   return stars >= condition.minStars && stars <= condition.maxStars;
 }
 
-function matchesNode(parent: DisplayParent, node: SparkFilterNode): boolean {
-  if (node.kind === 'spark') {
-    return matchesCondition(parent, node);
+function matchesConditionSequence(parent: DisplayParent, conditions: SparkCondition[]): boolean {
+  if (conditions.length === 0) {
+    return true;
   }
 
-  return matchesGroup(parent, node);
+  let completedGroupsMatch = true;
+  let currentOrGroupMatches = matchesCondition(parent, conditions[0]);
+
+  for (let index = 0; index < conditions.length - 1; index += 1) {
+    const condition = conditions[index];
+    const nextCondition = conditions[index + 1];
+    const nextMatches = matchesCondition(parent, nextCondition);
+
+    if (condition.nextOperator === 'or') {
+      currentOrGroupMatches = currentOrGroupMatches || nextMatches;
+    } else {
+      completedGroupsMatch = completedGroupsMatch && currentOrGroupMatches;
+
+      currentOrGroupMatches = nextMatches;
+    }
+  }
+
+  return completedGroupsMatch && currentOrGroupMatches;
 }
 
 function matchesGroup(parent: DisplayParent, group: SparkFilterGroup): boolean {
@@ -38,9 +49,24 @@ function matchesGroup(parent: DisplayParent, group: SparkFilterGroup): boolean {
     return true;
   }
 
-  return group.operator === 'and'
-    ? group.children.every((child) => matchesNode(parent, child))
-    : group.children.some((child) => matchesNode(parent, child));
+  const directConditions = group.children.flatMap((node) => (node.kind === 'spark' ? [node] : []));
+
+  const nestedGroups = group.children.flatMap((node) => (node.kind === 'group' ? [node] : []));
+
+  const scopeConditionsMatch = (['lineage', 'main'] as SparkScope[]).every((scope) =>
+    matchesConditionSequence(
+      parent,
+      directConditions.filter((condition) => condition.scope === scope),
+    ),
+  );
+
+  const nestedGroupsMatch =
+    nestedGroups.length === 0 ||
+    (group.operator === 'and'
+      ? nestedGroups.every((nestedGroup) => matchesGroup(parent, nestedGroup))
+      : nestedGroups.some((nestedGroup) => matchesGroup(parent, nestedGroup)));
+
+  return scopeConditionsMatch && nestedGroupsMatch;
 }
 
 function matchesOptionalWhites(parent: DisplayParent, state: SparkFilterState): boolean {

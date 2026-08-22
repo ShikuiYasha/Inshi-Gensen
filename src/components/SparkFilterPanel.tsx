@@ -73,6 +73,7 @@ export function SparkFilterPanel({ state, options, onChange }: SparkFilterPanelP
       scope,
       factorBaseId,
       category: option.category,
+      nextOperator: 'and',
       minStars: 1,
       maxStars: getMaximumStars(scope),
     };
@@ -88,7 +89,7 @@ export function SparkFilterPanel({ state, options, onChange }: SparkFilterPanelP
 
   function updateCondition(
     id: string,
-    updates: Partial<Pick<SparkCondition, 'minStars' | 'maxStars'>>,
+    updates: Partial<Pick<SparkCondition, 'minStars' | 'maxStars' | 'nextOperator'>>,
   ) {
     onChange({
       ...state,
@@ -139,26 +140,6 @@ export function SparkFilterPanel({ state, options, onChange }: SparkFilterPanelP
 
   return (
     <div className="spark-filter-panel">
-      <label className="spark-match-mode">
-        <span>Required Sparks must match</span>
-
-        <select
-          value={state.root.operator}
-          onChange={(event) =>
-            onChange({
-              ...state,
-              root: {
-                ...state.root,
-                operator: event.target.value as 'and' | 'or',
-              },
-            })
-          }
-        >
-          <option value="and">All (AND)</option>
-          <option value="or">Any (OR)</option>
-        </select>
-      </label>
-
       <div className="spark-filter-scopes">
         {(['lineage', 'main'] as SparkScope[]).map((scope) => {
           const conditions = getConditions(scope);
@@ -168,9 +149,18 @@ export function SparkFilterPanel({ state, options, onChange }: SparkFilterPanelP
             const option = options.find(
               (candidate) => candidate.factorBaseId === condition.factorBaseId,
             );
+            const conditionIndex = conditions.findIndex(
+              (candidate) => candidate.id === condition.id,
+            );
 
+            const hasNextCondition = conditionIndex >= 0 && conditionIndex < conditions.length - 1;
             return (
-              <div className="spark-condition" key={condition.id}>
+              <div
+                className={
+                  hasNextCondition ? 'spark-condition' : 'spark-condition spark-condition--last'
+                }
+                key={condition.id}
+              >
                 <strong>{option?.name ?? `Factor ${condition.factorBaseId}`}</strong>
 
                 <StarRangeSlider
@@ -184,7 +174,21 @@ export function SparkFilterPanel({ state, options, onChange }: SparkFilterPanelP
                     })
                   }
                 />
-
+                {hasNextCondition ? (
+                  <select
+                    className="spark-condition__operator"
+                    aria-label={`Connector after ${option?.name ?? 'Spark'}`}
+                    value={condition.nextOperator}
+                    onChange={(event) =>
+                      updateCondition(condition.id, {
+                        nextOperator: event.target.value as 'and' | 'or',
+                      })
+                    }
+                  >
+                    <option value="and">AND</option>
+                    <option value="or">OR</option>
+                  </select>
+                ) : null}
                 <button
                   type="button"
                   aria-label={`Remove ${option?.name ?? 'Spark'}`}

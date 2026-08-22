@@ -11,6 +11,7 @@ export type SparkCondition = {
   scope: SparkScope;
   factorBaseId: number;
   category: FactorCategory;
+  nextOperator: FilterOperator;
   minStars: number;
   maxStars: number;
 };

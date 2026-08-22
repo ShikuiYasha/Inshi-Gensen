@@ -127,19 +127,26 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
       return options.find((option) => option.cardId === cardId)?.name ?? `Character ${cardId}`;
     }
 
-    for (const node of sparkFilters.root.children) {
-      if (node.kind !== 'spark') {
-        continue;
-      }
+    for (const scope of ['lineage', 'main'] as const) {
+      const conditions = sparkFilters.root.children.flatMap((node) =>
+        node.kind === 'spark' && node.scope === scope ? [node] : [],
+      );
 
-      const scopeLabel = node.scope === 'main' ? 'Main: ' : '';
+      conditions.forEach((condition, index) => {
+        const scopeLabel = scope === 'main' ? 'Main: ' : '';
 
-      const starLabel =
-        node.minStars === node.maxStars
-          ? `${node.minStars}★`
-          : `${node.minStars}-${node.maxStars}★`;
+        const starLabel =
+          condition.minStars === condition.maxStars
+            ? `${condition.minStars}★`
+            : `${condition.minStars}-${condition.maxStars}★`;
 
-      labels.push(`${scopeLabel}${getFactorName(node.factorBaseId)}: ${starLabel}`);
+        const connectorLabel =
+          index < conditions.length - 1 ? ` ${condition.nextOperator.toUpperCase()}` : '';
+
+        labels.push(
+          `${scopeLabel}${getFactorName(condition.factorBaseId)}: ${starLabel}${connectorLabel}`,
+        );
+      });
     }
 
     for (const optionalFilter of sparkFilters.optionalWhites) {

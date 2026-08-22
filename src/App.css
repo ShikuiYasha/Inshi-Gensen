@@ -2202,3 +2202,75 @@
     align-self: flex-end;
   }
 }
+.spark-condition {
+  grid-template-columns:
+    fit-content(190px)
+    minmax(220px, 520px)
+    76px
+    auto;
+  align-items: center;
+  justify-content: start;
+}
+
+.spark-condition--last {
+  grid-template-columns:
+    fit-content(190px)
+    minmax(220px, 520px)
+    auto;
+}
+
+.spark-condition__operator {
+  align-self: center;
+  justify-self: center;
+  box-sizing: border-box;
+  width: 72px;
+  height: 30px;
+  padding: 0 5px;
+  color: #cbd5df;
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 750;
+  line-height: 1;
+  background: #272c33;
+  border: 1px solid #454d58;
+  border-radius: 5px;
+}
+
+@media (max-width: 520px) {
+  .spark-condition {
+    grid-template-columns: minmax(0, 1fr) 74px auto;
+    align-items: center;
+  }
+
+  .spark-condition--last {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .spark-condition > strong {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .spark-condition__operator {
+    grid-column: 2;
+    grid-row: 1;
+    width: 70px;
+  }
+
+  .spark-condition > button {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .spark-condition--last > button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .star-range {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    max-width: 520px;
+  }
+}
