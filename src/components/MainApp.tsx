@@ -29,6 +29,8 @@ import { createEmptySparkFilterState } from '../lib/filterState';
 import { getOptionalWhiteMatchCount, matchesSparkFilters } from '../lib/sparkFilter';
 import { SparkFilterPanel } from './SparkFilterPanel';
 import { createFactorOptions } from '../lib/factorOptions';
+import { serializeSparkFiltersToUql } from '../lib/uql';
+import { parseUqlToSparkFilters } from '../lib/uqlParser';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -37,11 +39,15 @@ type MainAppProps = {
 };
 
 type FilterMode = 'visual' | 'uql';
+type UqlStatus = 'active' | 'editing' | 'invalid';
 type SortMode = 'white-count' | 'affinity' | 'race-affinity';
 
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
+  const [uqlText, setUqlText] = useState('');
+  const [uqlError, setUqlError] = useState<string | null>(null);
+  const [uqlStatus, setUqlStatus] = useState<UqlStatus>('active');
   const [sparkFilters, setSparkFilters] = useState(createEmptySparkFilterState);
   const [targetCardId, setTargetCardId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('white-count');
@@ -101,6 +107,29 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
   const factorOptions = useMemo(() => createFactorOptions(gameData), [gameData]);
+  useEffect(() => {
+    if (filterMode !== 'uql') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const result = parseUqlToSparkFilters(uqlText, factorOptions);
+
+      if (result.state === null) {
+        setUqlError(result.error);
+        setUqlStatus('invalid');
+        return;
+      }
+
+      setSparkFilters(result.state);
+      setUqlError(null);
+      setUqlStatus('active');
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [factorOptions, filterMode, uqlText]);
 
   const ownedParentCharacterOptions = useMemo(
     () => createOwnedParentCharacterOptions(displayParents, gameData),
@@ -381,6 +410,24 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     setMainHideIds([]);
     setGrandparentAllowIds([]);
     setGrandparentHideIds([]);
+    setUqlText('');
+    setUqlError(null);
+  }
+  function switchToVisualMode(): void {
+    if (filterMode === 'visual') {
+      return;
+    }
+
+    const result = parseUqlToSparkFilters(uqlText, factorOptions);
+
+    if (result.state === null) {
+      setUqlError(result.error);
+      return;
+    }
+
+    setSparkFilters(result.state);
+    setUqlError(null);
+    setFilterMode('visual');
   }
   return (
     <div className="database">
@@ -422,7 +469,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
               <button
                 className={filterMode === 'visual' ? 'is-active' : ''}
                 type="button"
-                onClick={() => setFilterMode('visual')}
+                onClick={switchToVisualMode}
               >
                 Visual
               </button>
@@ -430,7 +477,11 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
               <button
                 className={filterMode === 'uql' ? 'is-active' : ''}
                 type="button"
-                onClick={() => setFilterMode('uql')}
+                onClick={() => {
+                  setUqlText(serializeSparkFiltersToUql(sparkFilters, factorOptions));
+                  setUqlError(null);
+                  setFilterMode('uql');
+                }}
               >
                 UQL
               </button>
@@ -569,12 +620,36 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
             </div>
           ) : (
             <div className="uql-panel">
-              <label htmlFor="uql-editor">UQL query</label>
-              <textarea
-                id="uql-editor"
-                placeholder="Example: (Speed >= 3 or Stamina >= 3) and optional white in (...)"
-                spellCheck="false"
-              />
+              <div className="uql-panel__heading">
+                <label htmlFor="uql-editor">UQL query</label>
+
+                <span
+                  className={`uql-validity uql-validity--${uqlStatus}`}
+                  title={uqlStatus === 'invalid' ? (uqlError ?? undefined) : undefined}
+                >
+                  {uqlStatus === 'active'
+                    ? 'Active'
+                    : uqlStatus === 'editing'
+                      ? 'Editing'
+                      : 'Invalid'}
+                </span>
+              </div>
+
+              <label className="uql-editor-shell" htmlFor="uql-editor">
+                <span className="uql-editor-prefix">where</span>
+
+                <textarea
+                  id="uql-editor"
+                  value={uqlText}
+                  placeholder="Speed >= 3 and (Guts >= 3 or Wit >= 3)"
+                  spellCheck="false"
+                  onChange={(event) => {
+                    setUqlText(event.target.value);
+                    setUqlError(null);
+                    setUqlStatus('editing');
+                  }}
+                />
+              </label>
             </div>
           )}
           {activeFilterLabels.length > 0 && (
@@ -583,7 +658,16 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                 <strong>Active Filters:</strong>
 
                 {filterMode === 'uql' ? (
-                  <span className="active-filter-chip active-filter-chip--uql">UQL: Active</span>
+                  <span
+                    className={`active-filter-chip active-filter-chip--uql uql-chip--${uqlStatus}`}
+                  >
+                    UQL:{' '}
+                    {uqlStatus === 'active'
+                      ? 'Active'
+                      : uqlStatus === 'editing'
+                        ? 'Editing'
+                        : 'Invalid'}
+                  </span>
                 ) : (
                   activeFilterLabels.map((label, index) => (
                     <span className="active-filter-chip" key={`${label}-${index}`}>
