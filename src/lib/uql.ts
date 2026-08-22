@@ -21,7 +21,9 @@ function serializeCondition(condition: SparkCondition, options: FactorOption[]):
   if (condition.maxStars === maximum) {
     return `${scopePrefix}${name} >= ${condition.minStars}`;
   }
-
+  if (condition.minStars === 1) {
+    return `${scopePrefix}${name} <= ${condition.maxStars}`;
+  }
   return `${scopePrefix}${name} between ` + `${condition.minStars} and ${condition.maxStars}`;
 }
 

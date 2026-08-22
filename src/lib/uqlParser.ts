@@ -117,7 +117,7 @@ function parseCondition(
   tokenOptions: Map<string, FactorOption>,
 ): SparkCondition | string {
   const match = source.match(
-    /^(main\s+)?(__factor_\d+__)\s*(?:(=)\s*(\d+)|(>=)\s*(\d+)|between\s*(\d+)\s+__range_and__\s+(\d+))$/i,
+    /^(main\s+)?(__factor_\d+__)\s*(?:(=|>=|>|<=|<)\s*(\d+)|between\s*(\d+)\s+__range_and__\s+(\d+))$/i,
   );
 
   if (!match) {
@@ -137,15 +137,27 @@ function parseCondition(
   let minStars: number;
   let maxStars: number;
 
-  if (match[3] === '=') {
-    minStars = Number(match[4]);
-    maxStars = minStars;
-  } else if (match[5] === '>=') {
-    minStars = Number(match[6]);
+  const operator = match[3];
+  const comparedStars = Number(match[4]);
+
+  if (operator === '=') {
+    minStars = comparedStars;
+    maxStars = comparedStars;
+  } else if (operator === '>=') {
+    minStars = comparedStars;
     maxStars = maximum;
+  } else if (operator === '>') {
+    minStars = comparedStars + 1;
+    maxStars = maximum;
+  } else if (operator === '<=') {
+    minStars = 1;
+    maxStars = comparedStars;
+  } else if (operator === '<') {
+    minStars = 1;
+    maxStars = comparedStars - 1;
   } else {
-    minStars = Number(match[7]);
-    maxStars = Number(match[8]);
+    minStars = Number(match[5]);
+    maxStars = Number(match[6]);
   }
 
   if (
