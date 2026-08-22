@@ -210,7 +210,18 @@
   background: #15171a;
   border-bottom: 1px solid #2b2f35;
 }
+.database-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 
+.site-logo {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  object-fit: contain;
+}
 .database-header h1 {
   margin: 0;
   font-size: 1.75rem;
@@ -3069,5 +3080,29 @@
     padding: 20px 16px;
     overflow-y: auto;
     border-radius: 14px 14px 0 0;
+  }
+}
+.welcome-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.welcome-brand__logo {
+  width: 88px;
+  height: 88px;
+  flex: none;
+  object-fit: contain;
+}
+
+@media (max-width: 480px) {
+  .welcome-brand {
+    gap: 10px;
+  }
+
+  .welcome-brand__logo {
+    width: 64px;
+    height: 64px;
   }
 }

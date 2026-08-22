@@ -599,9 +599,13 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   return (
     <div className="database">
       <header className="database-header">
-        <div>
-          <h1 lang="ja">因子厳選</h1>
-          <p>{data.veterans.length} Parent records</p>
+        <div className="database-brand">
+          <img className="site-logo" src={`${import.meta.env.BASE_URL}Cheval.png`} alt="" />
+
+          <div>
+            <h1 lang="ja">因子厳選</h1>
+            <p>{data.veterans.length} Parent records</p>
+          </div>
         </div>
 
         <button

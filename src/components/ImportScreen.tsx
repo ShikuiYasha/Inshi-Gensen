@@ -9,7 +9,15 @@ export function ImportScreen({ onImported }: ImportScreenProps) {
   return (
     <main className="app">
       <section className="welcome">
-        <h1 lang="ja">因子厳選</h1>
+        <div className="welcome-brand">
+          <img
+            className="welcome-brand__logo"
+            src={`${import.meta.env.BASE_URL}Cheval.png`}
+            alt=""
+          />
+
+          <h1 lang="ja">因子厳選</h1>
+        </div>
 
         <p className="welcome__heading">Start by importing your Parent Data.</p>
 
