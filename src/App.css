@@ -2510,3 +2510,68 @@
     border-bottom: 1px solid #303640;
   }
 }
+.uql-editor-container {
+  position: relative;
+}
+
+.uql-suggestions {
+  position: absolute;
+  z-index: 30;
+  width: min(310px, calc(100% - 16px));
+  max-height: 210px;
+  display: grid;
+  overflow-y: auto;
+  background: #151a20;
+  border: 1px solid #3d5368;
+  border-radius: 7px;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 45%);
+}
+
+.uql-suggestion {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  color: #dce4ec;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #292f37;
+  cursor: pointer;
+}
+
+.uql-suggestion:first-child {
+  border-top: 0;
+}
+
+.uql-suggestion:hover,
+.uql-suggestion:focus-visible,
+.uql-suggestion.is-active {
+  background: #243341;
+}
+
+.uql-suggestion strong {
+  overflow: hidden;
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uql-suggestion span {
+  color: #84909d;
+  font-size: 0.64rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .uql-suggestions {
+    width: min(270px, calc(100% - 12px));
+  }
+
+  .uql-suggestion {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1px;
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { ParentCard } from './ParentCard';
 import {
   calculateCharacterAffinityBreakdown,
@@ -31,6 +31,12 @@ import { SparkFilterPanel } from './SparkFilterPanel';
 import { createFactorOptions } from '../lib/factorOptions';
 import { serializeSparkFiltersToUql } from '../lib/uql';
 import { parseUqlToSparkFilters } from '../lib/uqlParser';
+import {
+  applyUqlSuggestion,
+  getUqlCaretPosition,
+  getUqlSuggestions,
+  type UqlSuggestion,
+} from '../lib/uqlAutocomplete';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -44,10 +50,21 @@ type SortMode = 'white-count' | 'affinity' | 'race-affinity';
 
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uqlEditorRef = useRef<HTMLTextAreaElement>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('visual');
   const [uqlText, setUqlText] = useState('');
   const [uqlError, setUqlError] = useState<string | null>(null);
   const [uqlStatus, setUqlStatus] = useState<UqlStatus>('active');
+  const [uqlCursorPosition, setUqlCursorPosition] = useState(0);
+  const [forceUqlSuggestions, setForceUqlSuggestions] = useState(false);
+
+  const [activeUqlSuggestionIndex, setActiveUqlSuggestionIndex] = useState(0);
+
+  const [uqlSuggestionPosition, setUqlSuggestionPosition] = useState({
+    left: 0,
+    top: 0,
+  });
+  const [isUqlEditorFocused, setIsUqlEditorFocused] = useState(false);
   const [sparkFilters, setSparkFilters] = useState(createEmptySparkFilterState);
   const [targetCardId, setTargetCardId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('white-count');
@@ -107,6 +124,11 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   );
   const characterOptions = useMemo(() => createCharacterOptions(gameData), [gameData]);
   const factorOptions = useMemo(() => createFactorOptions(gameData), [gameData]);
+  const uqlSuggestions = useMemo(
+    () => getUqlSuggestions(uqlText, uqlCursorPosition, factorOptions, forceUqlSuggestions),
+    [factorOptions, forceUqlSuggestions, uqlCursorPosition, uqlText],
+  );
+
   useEffect(() => {
     if (filterMode !== 'uql') {
       return;
@@ -413,6 +435,89 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     setUqlText('');
     setUqlError(null);
   }
+  function updateUqlSuggestionPosition(editor: HTMLTextAreaElement): void {
+    const caret = getUqlCaretPosition(editor);
+
+    const availableWidth = editor.parentElement?.clientWidth ?? editor.clientWidth;
+
+    setUqlSuggestionPosition({
+      left: Math.min(editor.offsetLeft + caret.left, Math.max(12, availableWidth - 300)),
+      top: editor.offsetTop + caret.top + caret.height + 5,
+    });
+  }
+  function handleUqlEditorKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
+    const suggestionsAreVisible = isUqlEditorFocused && uqlSuggestions.length > 0;
+
+    if (event.ctrlKey && event.code === 'Space') {
+      event.preventDefault();
+      setForceUqlSuggestions(true);
+      setIsUqlEditorFocused(true);
+      setActiveUqlSuggestionIndex(0);
+      updateUqlSuggestionPosition(event.currentTarget);
+      return;
+    }
+
+    if (!suggestionsAreVisible) {
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+
+      setActiveUqlSuggestionIndex((currentIndex) => (currentIndex + 1) % uqlSuggestions.length);
+
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+
+      setActiveUqlSuggestionIndex(
+        (currentIndex) => (currentIndex - 1 + uqlSuggestions.length) % uqlSuggestions.length,
+      );
+
+      return;
+    }
+
+    if (event.key === 'Tab' || event.key === 'Enter') {
+      event.preventDefault();
+
+      const suggestion = uqlSuggestions[activeUqlSuggestionIndex];
+
+      if (suggestion) {
+        handleUqlSuggestion(suggestion);
+      }
+
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setForceUqlSuggestions(false);
+      setIsUqlEditorFocused(false);
+    }
+  }
+  function handleUqlSuggestion(suggestion: UqlSuggestion): void {
+    const result = applyUqlSuggestion(uqlText, suggestion);
+
+    setUqlText(result.text);
+    setUqlCursorPosition(result.cursorPosition);
+    setForceUqlSuggestions(false);
+    setActiveUqlSuggestionIndex(0);
+    setUqlError(null);
+    setUqlStatus('editing');
+
+    window.requestAnimationFrame(() => {
+      const editor = uqlEditorRef.current;
+
+      if (!editor) {
+        return;
+      }
+
+      editor.focus();
+      editor.setSelectionRange(result.cursorPosition, result.cursorPosition);
+    });
+  }
   function switchToVisualMode(): void {
     if (filterMode === 'visual') {
       return;
@@ -634,21 +739,85 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                 </span>
               </div>
 
-              <label className="uql-editor-shell" htmlFor="uql-editor">
-                <span className="uql-editor-prefix">where</span>
+              <div className="uql-editor-container">
+                <label className="uql-editor-shell" htmlFor="uql-editor">
+                  <span className="uql-editor-prefix">where</span>
 
-                <textarea
-                  id="uql-editor"
-                  value={uqlText}
-                  placeholder="Speed >= 3 and (Guts >= 3 or Wit >= 3)"
-                  spellCheck="false"
-                  onChange={(event) => {
-                    setUqlText(event.target.value);
-                    setUqlError(null);
-                    setUqlStatus('editing');
-                  }}
-                />
-              </label>
+                  <textarea
+                    id="uql-editor"
+                    ref={uqlEditorRef}
+                    value={uqlText}
+                    placeholder="Speed >= 3 and (Guts >= 3 or Wit >= 3)"
+                    spellCheck="false"
+                    onFocus={(event) => {
+                      setIsUqlEditorFocused(true);
+                      setUqlCursorPosition(event.currentTarget.selectionStart);
+                      updateUqlSuggestionPosition(event.currentTarget);
+                    }}
+                    onBlur={() => {
+                      setIsUqlEditorFocused(false);
+                      setForceUqlSuggestions(false);
+                    }}
+                    onSelect={(event) => {
+                      setUqlCursorPosition(event.currentTarget.selectionStart);
+                      setActiveUqlSuggestionIndex(0);
+                      updateUqlSuggestionPosition(event.currentTarget);
+                    }}
+                    onChange={(event) => {
+                      setUqlText(event.target.value);
+                      setUqlCursorPosition(event.target.selectionStart);
+                      setIsUqlEditorFocused(true);
+                      setForceUqlSuggestions(false);
+                      setActiveUqlSuggestionIndex(0);
+                      setUqlError(null);
+                      setUqlStatus('editing');
+                      updateUqlSuggestionPosition(event.currentTarget);
+                    }}
+                    onScroll={(event) => {
+                      updateUqlSuggestionPosition(event.currentTarget);
+                    }}
+                    onKeyDown={handleUqlEditorKeyDown}
+                  />
+                </label>
+
+                {isUqlEditorFocused && uqlSuggestions.length > 0 && (
+                  <div
+                    className="uql-suggestions"
+                    role="listbox"
+                    aria-label="UQL suggestions"
+                    style={{
+                      left: uqlSuggestionPosition.left,
+                      top: uqlSuggestionPosition.top,
+                    }}
+                  >
+                    {uqlSuggestions.map((suggestion, index) => (
+                      <button
+                        className={
+                          index === activeUqlSuggestionIndex
+                            ? 'uql-suggestion is-active'
+                            : 'uql-suggestion'
+                        }
+                        type="button"
+                        role="option"
+                        aria-selected={index === activeUqlSuggestionIndex}
+                        key={`${suggestion.start}-${suggestion.label}`}
+                        onMouseEnter={() => {
+                          setActiveUqlSuggestionIndex(index);
+                        }}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                        }}
+                        onClick={() => {
+                          handleUqlSuggestion(suggestion);
+                        }}
+                      >
+                        <strong>{suggestion.label}</strong>
+                        <span>{suggestion.detail}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {activeFilterLabels.length > 0 && (
