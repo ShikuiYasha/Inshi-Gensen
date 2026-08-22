@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react';
 import type { DisplayParent } from '../lib/parentDisplay';
 import type { StoredRental } from '../lib/parentStorage';
+import { RentalDetails } from './RentalDetails';
 
 export type DisplayRental = {
   rental: StoredRental;
@@ -30,6 +31,7 @@ export function RentalPicker({
   const [searchText, setSearchText] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
 
   const filteredRentals = useMemo(() => {
     const search = searchText.trim().toLocaleLowerCase();
@@ -158,6 +160,7 @@ export function RentalPicker({
         <div className="rental-list">
           {filteredRentals.map(({ rental, parent }) => {
             const selected = parent.trainedCharaId === selectedParentId;
+            const expanded = expandedAccountId === rental.accountId;
 
             return (
               <article
@@ -218,6 +221,18 @@ export function RentalPicker({
 
                 <div className="rental-card__actions">
                   <button
+                    className="rental-card__expand"
+                    type="button"
+                    aria-expanded={expanded}
+                    onClick={() => {
+                      setExpandedAccountId((currentId) =>
+                        currentId === rental.accountId ? null : rental.accountId,
+                      );
+                    }}
+                  >
+                    {expanded ? 'Collapse' : 'Expand'}
+                  </button>
+                  <button
                     className="rental-card__refresh"
                     type="button"
                     disabled={isFetching}
@@ -234,6 +249,7 @@ export function RentalPicker({
                     Remove
                   </button>
                 </div>
+                {expanded && <RentalDetails parent={parent} />}
               </article>
             );
           })}

@@ -487,123 +487,122 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
               </button>
             </div>
           </div>
+          <div className="filter-sections">
+            <details className="filter-section">
+              <summary>Target</summary>
+              <div className="filter-section__content target-controls">
+                <div className="target-control">
+                  <span className="target-control__label">Target Uma</span>
 
+                  <CharacterPicker
+                    label="Select Target Uma"
+                    options={characterOptions}
+                    value={targetCardId}
+                    onChange={handleTargetChange}
+                  />
+                </div>
+
+                <div className="target-control">
+                  <span className="target-control__label">Other Parent</span>
+
+                  {otherParent ? (
+                    <div className="other-parent-selection">
+                      <div className="character-image">
+                        <span aria-hidden="true">{otherParent.main.characterName.slice(0, 1)}</span>
+
+                        <img
+                          src={
+                            `${import.meta.env.BASE_URL}character_thumbs/` +
+                            otherParent.main.thumbnailFileName
+                          }
+                          alt=""
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+
+                      <strong>{otherParent.main.characterName}</strong>
+
+                      <button
+                        className="browse-rentals-button"
+                        type="button"
+                        onClick={() => setIsRentalPickerOpen(true)}
+                      >
+                        Rentals
+                      </button>
+
+                      <button type="button" onClick={() => setOtherParentId(null)}>
+                        Clear
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="other-parent-empty">
+                      <span className="character-picker-button__add">+</span>
+                      <strong>No Other Parent selected</strong>
+                      <span>Choose an owned Parent below or use a saved Rental.</span>
+
+                      <button
+                        className="browse-rentals-button"
+                        type="button"
+                        onClick={() => setIsRentalPickerOpen(true)}
+                      >
+                        Browse Rentals
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </details>
+          </div>
+          <div className="filter-sections">
+            <details className="filter-section">
+              <summary>Include / Exclude Characters</summary>
+              <div className="filter-section__content character-filter-layout">
+                <section className="character-filter-scope">
+                  <h3>Main Parent</h3>
+
+                  <CharacterMultiPicker
+                    label="Allow Main Parent Characters"
+                    options={ownedParentCharacterOptions}
+                    values={mainAllowIds}
+                    tone="allow"
+                    onChange={setMainAllowIds}
+                  />
+
+                  <CharacterMultiPicker
+                    label="Hide Main Parent Characters"
+                    options={ownedParentCharacterOptions}
+                    values={mainHideIds}
+                    tone="hide"
+                    onChange={setMainHideIds}
+                  />
+                </section>
+
+                <section className="character-filter-scope">
+                  <h3>Grandparents</h3>
+
+                  <CharacterMultiPicker
+                    label="Allow Grandparent Characters"
+                    options={grandparentCharacterOptions}
+                    values={grandparentAllowIds}
+                    tone="allow"
+                    onChange={setGrandparentAllowIds}
+                  />
+
+                  <CharacterMultiPicker
+                    label="Hide Grandparent Characters"
+                    options={grandparentCharacterOptions}
+                    values={grandparentHideIds}
+                    tone="hide"
+                    onChange={setGrandparentHideIds}
+                  />
+                </section>
+              </div>
+            </details>
+          </div>
           {filterMode === 'visual' ? (
             <div className="filter-sections">
-              <details className="filter-section">
-                <summary>Target</summary>
-                <div className="filter-section__content target-controls">
-                  <div className="target-control">
-                    <span className="target-control__label">Target Uma</span>
-
-                    <CharacterPicker
-                      label="Select Target Uma"
-                      options={characterOptions}
-                      value={targetCardId}
-                      onChange={handleTargetChange}
-                    />
-                  </div>
-
-                  <div className="target-control">
-                    <span className="target-control__label">Other Parent</span>
-
-                    {otherParent ? (
-                      <div className="other-parent-selection">
-                        <div className="character-image">
-                          <span aria-hidden="true">
-                            {otherParent.main.characterName.slice(0, 1)}
-                          </span>
-
-                          <img
-                            src={
-                              `${import.meta.env.BASE_URL}character_thumbs/` +
-                              otherParent.main.thumbnailFileName
-                            }
-                            alt=""
-                            onError={(event) => {
-                              event.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </div>
-
-                        <strong>{otherParent.main.characterName}</strong>
-
-                        <button
-                          className="browse-rentals-button"
-                          type="button"
-                          onClick={() => setIsRentalPickerOpen(true)}
-                        >
-                          Rentals
-                        </button>
-
-                        <button type="button" onClick={() => setOtherParentId(null)}>
-                          Clear
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="other-parent-empty">
-                        <span className="character-picker-button__add">+</span>
-                        <strong>No Other Parent selected</strong>
-                        <span>Choose an owned Parent below or use a saved Rental.</span>
-
-                        <button
-                          className="browse-rentals-button"
-                          type="button"
-                          onClick={() => setIsRentalPickerOpen(true)}
-                        >
-                          Browse Rentals
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </details>
-
-              <details className="filter-section">
-                <summary>Include / Exclude Characters</summary>
-                <div className="filter-section__content character-filter-layout">
-                  <section className="character-filter-scope">
-                    <h3>Main Parent</h3>
-
-                    <CharacterMultiPicker
-                      label="Allow Main Parent Characters"
-                      options={ownedParentCharacterOptions}
-                      values={mainAllowIds}
-                      tone="allow"
-                      onChange={setMainAllowIds}
-                    />
-
-                    <CharacterMultiPicker
-                      label="Hide Main Parent Characters"
-                      options={ownedParentCharacterOptions}
-                      values={mainHideIds}
-                      tone="hide"
-                      onChange={setMainHideIds}
-                    />
-                  </section>
-
-                  <section className="character-filter-scope">
-                    <h3>Grandparents</h3>
-
-                    <CharacterMultiPicker
-                      label="Allow Grandparent Characters"
-                      options={grandparentCharacterOptions}
-                      values={grandparentAllowIds}
-                      tone="allow"
-                      onChange={setGrandparentAllowIds}
-                    />
-
-                    <CharacterMultiPicker
-                      label="Hide Grandparent Characters"
-                      options={grandparentCharacterOptions}
-                      values={grandparentHideIds}
-                      tone="hide"
-                      onChange={setGrandparentHideIds}
-                    />
-                  </section>
-                </div>
-              </details>
-
               <div className="property-heading">Property Filters</div>
 
               <details className="filter-section">
