@@ -2575,3 +2575,24 @@
     gap: 1px;
   }
 }
+.factor-pill--match-required {
+  border-color: #55b9ff;
+  box-shadow:
+    0 0 0 1px rgb(85 185 255 / 85%),
+    0 0 9px rgb(69 173 255 / 22%);
+}
+
+.factor-pill--match-optional {
+  border-color: #f0c94f;
+  box-shadow:
+    0 0 0 1px rgb(240 201 79 / 90%),
+    0 0 9px rgb(240 201 79 / 24%);
+}
+
+.factor-pill--match-both {
+  border-color: #f0c94f;
+  box-shadow:
+    0 0 0 1px #55b9ff,
+    0 0 0 3px rgb(240 201 79 / 78%),
+    0 0 11px rgb(240 201 79 / 28%);
+}

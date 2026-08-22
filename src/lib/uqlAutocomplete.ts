@@ -49,13 +49,99 @@ function getCategoryLabel(option: FactorOption): string {
       return 'Scenario White';
   }
 }
+function getOptionalWhiteSuggestions(
+  text: string,
+  cursorPosition: number,
+  options: FactorOption[],
+  showAll: boolean,
+): UqlSuggestion[] | null {
+  const beforeCursor = text.slice(0, cursorPosition);
 
+  const match = beforeCursor.match(/optional\s+(?:main\s+)?white\s+in\s*\(([^)]*)$/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const listText = match[1];
+  const lastCommaIndex = listText.lastIndexOf(',');
+  const rawQuery = listText.slice(lastCommaIndex + 1);
+
+  const leadingWhitespace = rawQuery.length - rawQuery.trimStart().length;
+
+  const query = rawQuery.trim().toLocaleLowerCase();
+
+  const replacementStart = cursorPosition - rawQuery.length + leadingWhitespace;
+
+  const whiteOptions = options.filter((option) =>
+    ['skill', 'race', 'scenario'].includes(option.category),
+  );
+
+  const exactOption = whiteOptions.find((option) => option.name.toLocaleLowerCase() === query);
+
+  if (exactOption) {
+    return [
+      {
+        label: ',',
+        detail: 'Add another Optional White',
+        replacement: ', ',
+        start: cursorPosition,
+        end: cursorPosition,
+      },
+      {
+        label: ')',
+        detail: 'Finish Optional Whites',
+        replacement: ')',
+        start: cursorPosition,
+        end: cursorPosition,
+      },
+    ];
+  }
+
+  return whiteOptions
+    .filter((option) => {
+      if (!query) {
+        return true;
+      }
+
+      return option.name.toLocaleLowerCase().includes(query);
+    })
+    .sort((left, right) => {
+      const leftStarts = left.name.toLocaleLowerCase().startsWith(query);
+
+      const rightStarts = right.name.toLocaleLowerCase().startsWith(query);
+
+      if (leftStarts !== rightStarts) {
+        return leftStarts ? -1 : 1;
+      }
+
+      return left.factorBaseId - right.factorBaseId;
+    })
+    .slice(0, showAll ? whiteOptions.length : 10)
+    .map((option) => ({
+      label: option.name,
+      detail: getCategoryLabel(option),
+      replacement: option.name,
+      start: replacementStart,
+      end: cursorPosition,
+    }));
+}
 export function getUqlSuggestions(
   text: string,
   cursorPosition: number,
   options: FactorOption[],
   showAll: boolean = false,
 ): UqlSuggestion[] {
+  const optionalWhiteSuggestions = getOptionalWhiteSuggestions(
+    text,
+    cursorPosition,
+    options,
+    showAll,
+  );
+
+  if (optionalWhiteSuggestions !== null) {
+    return optionalWhiteSuggestions;
+  }
   const expressionStart = findExpressionStart(text, cursorPosition);
 
   const rawExpression = text.slice(expressionStart, cursorPosition);
@@ -111,7 +197,25 @@ export function getUqlSuggestions(
     return [];
   }
 
-  return options
+  const commandSuggestions = [
+    {
+      label: 'optional white in (',
+      detail: 'Optional Whites across the lineage',
+    },
+    {
+      label: 'optional main white in (',
+      detail: 'Optional Whites on the Main Parent',
+    },
+  ]
+    .filter((command) => command.label.toLocaleLowerCase().includes(normalizedQuery))
+    .map((command) => ({
+      ...command,
+      replacement: command.label,
+      start: trimmedStart,
+      end: cursorPosition,
+    }));
+
+  const factorSuggestions = options
     .filter((option) => {
       if (!normalizedQuery) {
         return true;
@@ -130,7 +234,6 @@ export function getUqlSuggestions(
 
       return left.factorBaseId - right.factorBaseId;
     })
-    .slice(0, showAll ? options.length : 10)
     .map((option) => ({
       label: option.name,
       detail: getCategoryLabel(option),
@@ -138,6 +241,10 @@ export function getUqlSuggestions(
       start: factorStart,
       end: cursorPosition,
     }));
+
+  const suggestions = [...commandSuggestions, ...factorSuggestions];
+
+  return suggestions.slice(0, showAll ? suggestions.length : 10);
 }
 
 export function applyUqlSuggestion(

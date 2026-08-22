@@ -888,6 +888,7 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
                   raceBreakdown={raceBreakdown}
                   characterBreakdown={characterBreakdown}
                   isOtherParent={parent.trainedCharaId === otherParentId}
+                  sparkFilters={sparkFilters}
                   onToggleOtherParent={() =>
                     setOtherParentId((currentId) =>
                       currentId === parent.trainedCharaId ? null : parent.trainedCharaId,

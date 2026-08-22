@@ -8,6 +8,8 @@ import {
   type FactorCategory,
   type LineageMember,
 } from '../lib/parentDisplay';
+import type { SparkFilterState } from '../lib/filterState';
+import { getFactorHighlight } from '../lib/factorHighlight';
 
 type ParentCardProps = {
   parent: DisplayParent;
@@ -17,6 +19,7 @@ type ParentCardProps = {
   onToggleOtherParent: () => void;
   raceBreakdown: RaceAffinityBreakdown;
   characterBreakdown?: CharacterAffinityBreakdown;
+  sparkFilters: SparkFilterState;
 };
 
 const factorSectionLabels: Partial<Record<FactorCategory, string>> = {
@@ -26,9 +29,31 @@ const factorSectionLabels: Partial<Record<FactorCategory, string>> = {
   event: 'Event Sparks',
 };
 
-function FactorPill({ factor }: { factor: DisplayFactor }) {
+function FactorPill({
+  factor,
+  sparkFilters,
+}: {
+  factor: DisplayFactor;
+  sparkFilters: SparkFilterState;
+}) {
+  const highlight = getFactorHighlight(factor, sparkFilters);
+
+  const highlightClass = highlight === 'none' ? '' : ` factor-pill--match-${highlight}`;
+
+  const matchLabel =
+    highlight === 'required'
+      ? 'Required Spark match'
+      : highlight === 'optional'
+        ? 'Optional White match'
+        : highlight === 'both'
+          ? 'Required and Optional White match'
+          : undefined;
+
   return (
-    <span className={`factor-pill factor-pill--${factor.category}`}>
+    <span
+      className={`factor-pill factor-pill--${factor.category}` + highlightClass}
+      title={matchLabel}
+    >
       <span>
         {factor.totalStars}★ {factor.name}
       </span>
@@ -66,6 +91,7 @@ export function ParentCard({
   characterBreakdown,
   isOtherParent,
   onToggleOtherParent,
+  sparkFilters,
 }: ParentCardProps) {
   const [breakdownMode, setBreakdownMode] = useState<AffinityBreakdownMode | null>(null);
 
@@ -171,7 +197,11 @@ export function ParentCard({
             <div className="factor-group factor-group--primary">
               <div className="factor-list">
                 {primaryFactors.map((factor) => (
-                  <FactorPill factor={factor} key={`${factor.category}-${factor.name}`} />
+                  <FactorPill
+                    factor={factor}
+                    sparkFilters={sparkFilters}
+                    key={`${factor.category}-${factor.name}`}
+                  />
                 ))}
               </div>
             </div>
@@ -190,7 +220,11 @@ export function ParentCard({
 
                 <div className="factor-list">
                   {factors.map((factor) => (
-                    <FactorPill factor={factor} key={`${factor.category}-${factor.name}`} />
+                    <FactorPill
+                      factor={factor}
+                      sparkFilters={sparkFilters}
+                      key={`${factor.category}-${factor.name}`}
+                    />
                   ))}
                 </div>
               </section>
