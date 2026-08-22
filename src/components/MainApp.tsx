@@ -37,6 +37,16 @@ import {
   getUqlSuggestions,
   type UqlSuggestion,
 } from '../lib/uqlAutocomplete';
+import { FilterPresetPanel } from './FilterPresetPanel';
+
+import {
+  createFilterPreset,
+  importFilterPresetCode,
+  importFilterPresetCollection,
+  loadFilterPresets,
+  removeFilterPreset,
+  type FilterPreset,
+} from '../lib/filterPresets';
 
 type MainAppProps = {
   data: StoredParentData;
@@ -76,6 +86,9 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const [grandparentAllowIds, setGrandparentAllowIds] = useState<number[]>([]);
   const [grandparentHideIds, setGrandparentHideIds] = useState<number[]>([]);
   const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [filterPresets, setFilterPresets] = useState(loadFilterPresets);
+
+  const [isPresetPanelOpen, setIsPresetPanelOpen] = useState(false);
   useEffect(() => {
     let isCancelled = false;
 
@@ -128,7 +141,13 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     () => getUqlSuggestions(uqlText, uqlCursorPosition, factorOptions, forceUqlSuggestions),
     [factorOptions, forceUqlSuggestions, uqlCursorPosition, uqlText],
   );
+  const currentPresetQuery = useMemo(() => {
+    if (filterMode === 'uql') {
+      return uqlStatus === 'active' ? uqlText.trim() : '';
+    }
 
+    return serializeSparkFiltersToUql(sparkFilters, factorOptions);
+  }, [factorOptions, filterMode, sparkFilters, uqlStatus, uqlText]);
   useEffect(() => {
     if (filterMode !== 'uql') {
       return;
@@ -435,6 +454,72 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     setUqlText('');
     setUqlError(null);
   }
+  function handleSavePreset(name: string): void {
+    const preset = createFilterPreset(name, currentPresetQuery);
+
+    setFilterPresets((currentPresets) => [...currentPresets, preset]);
+  }
+
+  function handleApplyPreset(preset: FilterPreset): void {
+    const result = parseUqlToSparkFilters(preset.query, factorOptions);
+
+    if (result.state === null) {
+      setUqlText(preset.query);
+      setUqlError(result.error);
+      setUqlStatus('invalid');
+      setFilterMode('uql');
+      return;
+    }
+
+    setSparkFilters(result.state);
+    setUqlText(preset.query);
+    setUqlError(null);
+    setUqlStatus('active');
+  }
+
+  function handleRemovePreset(presetId: string): void {
+    removeFilterPreset(presetId);
+
+    setFilterPresets((currentPresets) => currentPresets.filter((preset) => preset.id !== presetId));
+  }
+
+  function handleImportPreset(code: string): void {
+    const shared = importFilterPresetCode(code);
+
+    const result = parseUqlToSparkFilters(shared.query, factorOptions);
+
+    if (result.state === null) {
+      throw new Error(`The preset contains unsupported UQL: ${result.error}`);
+    }
+
+    const preset = createFilterPreset(shared.name, shared.query);
+
+    setFilterPresets((currentPresets) => [...currentPresets, preset]);
+  }
+  function handleImportPresetCollection(contents: string): void {
+    const sharedPresets = importFilterPresetCollection(contents);
+
+    for (const shared of sharedPresets) {
+      const result = parseUqlToSparkFilters(shared.query, factorOptions);
+
+      if (result.state === null) {
+        throw new Error(`“${shared.name}” contains unsupported UQL: ` + result.error);
+      }
+    }
+
+    const newSharedPresets = sharedPresets.filter(
+      (shared) =>
+        !filterPresets.some(
+          (existing) => existing.name === shared.name && existing.query === shared.query,
+        ),
+    );
+
+    const importedPresets = newSharedPresets.map((shared) =>
+      createFilterPreset(shared.name, shared.query),
+    );
+
+    setFilterPresets((currentPresets) => [...currentPresets, ...importedPresets]);
+  }
   function updateUqlSuggestionPosition(editor: HTMLTextAreaElement): void {
     const caret = getUqlCaretPosition(editor);
 
@@ -569,27 +654,38 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
         <section className="filter-panel">
           <div className="filter-panel__header">
             <h2>Filters</h2>
-
-            <div className="filter-mode" aria-label="Filter mode">
+            <div className="filter-panel__actions">
               <button
-                className={filterMode === 'visual' ? 'is-active' : ''}
+                className="preset-button"
                 type="button"
-                onClick={switchToVisualMode}
+                onClick={() => setIsPresetPanelOpen(true)}
               >
-                Visual
+                Presets
+                <span>{filterPresets.length}</span>
               </button>
+              <div className="filter-mode" aria-label="Filter mode">
+                <button
+                  className={filterMode === 'visual' ? 'is-active' : ''}
+                  type="button"
+                  onClick={switchToVisualMode}
+                >
+                  Visual
+                </button>
 
-              <button
-                className={filterMode === 'uql' ? 'is-active' : ''}
-                type="button"
-                onClick={() => {
-                  setUqlText(serializeSparkFiltersToUql(sparkFilters, factorOptions));
-                  setUqlError(null);
-                  setFilterMode('uql');
-                }}
-              >
-                UQL
-              </button>
+                <button
+                  className={filterMode === 'uql' ? 'is-active' : ''}
+                  type="button"
+                  onClick={() => {
+                    setUqlText(serializeSparkFiltersToUql(sparkFilters, factorOptions));
+                    setUqlError(null);
+                    setFilterMode('uql');
+                    setUqlStatus('active');
+                    setUqlError(null);
+                  }}
+                >
+                  UQL
+                </button>
+              </div>
             </div>
           </div>
           <div className="filter-sections">
@@ -907,6 +1003,17 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
         onFetch={handleFetchRental}
         onSelect={setOtherParentId}
         onRemove={handleRemoveRental}
+      />
+      <FilterPresetPanel
+        isOpen={isPresetPanelOpen}
+        presets={filterPresets}
+        currentQuery={currentPresetQuery}
+        onClose={() => setIsPresetPanelOpen(false)}
+        onSave={handleSavePreset}
+        onApply={handleApplyPreset}
+        onRemove={handleRemovePreset}
+        onImport={handleImportPreset}
+        onImportCollection={handleImportPresetCollection}
       />
     </div>
   );
