@@ -258,6 +258,9 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
         if (!matchesSparkFilters(parent, sparkFilters)) {
           return false;
         }
+        if (targetCharacterId !== null && parent.main.characterId === targetCharacterId) {
+          return false;
+        }
         if (otherParent && parent.main.characterId === otherParent.main.characterId) {
           return false;
         }
