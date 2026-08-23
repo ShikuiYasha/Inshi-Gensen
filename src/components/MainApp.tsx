@@ -170,12 +170,16 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     };
   }, [factorOptions, filterMode, uqlText]);
 
-  const ownedParentCharacterOptions = useMemo(
-    () => createOwnedParentCharacterOptions(displayParents, gameData),
-    [displayParents, gameData],
-  );
   const targetCharacterId =
     characterOptions.find((option) => option.cardId === targetCardId)?.characterId ?? null;
+
+  const ownedParentCharacterOptions = useMemo(
+    () =>
+      createOwnedParentCharacterOptions(displayParents, gameData).filter(
+        (option) => targetCharacterId === null || option.characterId !== targetCharacterId,
+      ),
+    [displayParents, gameData, targetCharacterId],
+  );
 
   const grandparentCharacterOptions = useMemo(
     () => createGrandparentCharacterOptions(displayParents, gameData),
@@ -419,7 +423,26 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
 
   function handleTargetChange(cardId: number | null) {
     setTargetCardId(cardId);
+    const selectedCharacterId =
+      characterOptions.find((option) => option.cardId === cardId)?.characterId ?? null;
 
+    if (selectedCharacterId !== null) {
+      setMainAllowIds((currentIds) =>
+        currentIds.filter(
+          (currentId) =>
+            characterOptions.find((option) => option.cardId === currentId)?.characterId !==
+            selectedCharacterId,
+        ),
+      );
+
+      setMainHideIds((currentIds) =>
+        currentIds.filter(
+          (currentId) =>
+            characterOptions.find((option) => option.cardId === currentId)?.characterId !==
+            selectedCharacterId,
+        ),
+      );
+    }
     if (cardId === null && sortMode === 'affinity') {
       setSortMode('race-affinity');
     }
