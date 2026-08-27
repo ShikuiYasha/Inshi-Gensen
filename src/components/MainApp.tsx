@@ -45,6 +45,7 @@ import {
   removeFilterPreset,
   type FilterPreset,
 } from '../lib/filterPresets';
+import { loadFilterWorkspace, saveFilterWorkspace } from '../lib/filterWorkspace';
 import { ParentDataImporter } from './ParentDataImporter';
 
 type MainAppProps = {
@@ -59,8 +60,11 @@ type SortMode = 'white-count' | 'affinity' | 'race-affinity';
 
 export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   const uqlEditorRef = useRef<HTMLTextAreaElement>(null);
-  const [filterMode, setFilterMode] = useState<FilterMode>('visual');
-  const [uqlText, setUqlText] = useState('');
+  const [savedFilterWorkspace] = useState(loadFilterWorkspace);
+  const [filterMode, setFilterMode] = useState<FilterMode>(
+    () => savedFilterWorkspace?.filterMode ?? 'visual',
+  );
+  const [uqlText, setUqlText] = useState(() => savedFilterWorkspace?.uqlText ?? '');
   const [uqlError, setUqlError] = useState<string | null>(null);
   const [uqlStatus, setUqlStatus] = useState<UqlStatus>('active');
   const [uqlCursorPosition, setUqlCursorPosition] = useState(0);
@@ -73,20 +77,64 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
     top: 0,
   });
   const [isUqlEditorFocused, setIsUqlEditorFocused] = useState(false);
-  const [sparkFilters, setSparkFilters] = useState(createEmptySparkFilterState);
-  const [targetCardId, setTargetCardId] = useState<number | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>('white-count');
-  const [otherParentId, setOtherParentId] = useState<string | null>(null);
+  const [sparkFilters, setSparkFilters] = useState(
+    () => savedFilterWorkspace?.sparkFilters ?? createEmptySparkFilterState(),
+  );
+  const [targetCardId, setTargetCardId] = useState<number | null>(
+    () => savedFilterWorkspace?.targetCardId ?? null,
+  );
+  const [sortMode, setSortMode] = useState<SortMode>(
+    () => savedFilterWorkspace?.sortMode ?? 'white-count',
+  );
+  const [otherParentId, setOtherParentId] = useState<string | null>(
+    () => savedFilterWorkspace?.otherParentId ?? null,
+  );
   const [rentals, setRentals] = useState<StoredRental[]>([]);
   const [isRentalPickerOpen, setIsRentalPickerOpen] = useState(false);
-  const [mainAllowIds, setMainAllowIds] = useState<number[]>([]);
-  const [mainHideIds, setMainHideIds] = useState<number[]>([]);
-  const [grandparentAllowIds, setGrandparentAllowIds] = useState<number[]>([]);
-  const [grandparentHideIds, setGrandparentHideIds] = useState<number[]>([]);
+  const [mainAllowIds, setMainAllowIds] = useState<number[]>(
+    () => savedFilterWorkspace?.mainAllowIds ?? [],
+  );
+  const [mainHideIds, setMainHideIds] = useState<number[]>(
+    () => savedFilterWorkspace?.mainHideIds ?? [],
+  );
+  const [grandparentAllowIds, setGrandparentAllowIds] = useState<number[]>(
+    () => savedFilterWorkspace?.grandparentAllowIds ?? [],
+  );
+  const [grandparentHideIds, setGrandparentHideIds] = useState<number[]>(
+    () => savedFilterWorkspace?.grandparentHideIds ?? [],
+  );
   const [isDataImporterOpen, setIsDataImporterOpen] = useState(false);
   const [filterPresets, setFilterPresets] = useState(loadFilterPresets);
 
   const [isPresetPanelOpen, setIsPresetPanelOpen] = useState(false);
+
+  useEffect(() => {
+    saveFilterWorkspace({
+      version: 1,
+      filterMode,
+      uqlText,
+      sparkFilters,
+      targetCardId,
+      sortMode,
+      otherParentId,
+      mainAllowIds,
+      mainHideIds,
+      grandparentAllowIds,
+      grandparentHideIds,
+    });
+  }, [
+    filterMode,
+    uqlText,
+    sparkFilters,
+    targetCardId,
+    sortMode,
+    otherParentId,
+    mainAllowIds,
+    mainHideIds,
+    grandparentAllowIds,
+    grandparentHideIds,
+  ]);
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -449,13 +497,26 @@ export function MainApp({ data, gameData, onDataReplaced }: MainAppProps) {
   }
 
   function clearCurrentFilters(): void {
+    setFilterMode('visual');
     setSparkFilters(createEmptySparkFilterState());
+
+    setTargetCardId(null);
+    setOtherParentId(null);
+    setSortMode('white-count');
+
     setMainAllowIds([]);
     setMainHideIds([]);
     setGrandparentAllowIds([]);
     setGrandparentHideIds([]);
+
     setUqlText('');
     setUqlError(null);
+    setUqlStatus('active');
+    setUqlCursorPosition(0);
+    setForceUqlSuggestions(false);
+    setIsUqlEditorFocused(false);
+
+    setIsRentalPickerOpen(false);
   }
   function handleSavePreset(name: string): void {
     const preset = createFilterPreset(name, currentPresetQuery);

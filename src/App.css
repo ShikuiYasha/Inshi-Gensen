@@ -718,7 +718,16 @@
     align-items: stretch;
     flex-direction: column;
   }
+  .parent-card__identity {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
 
+  .parent-card__rating {
+    padding-left: 0;
+    border-left: 0;
+  }
   .parent-card__metrics {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
